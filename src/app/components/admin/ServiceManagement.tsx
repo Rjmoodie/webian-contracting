@@ -194,24 +194,28 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Service Management</h2>
-          <p className="text-gray-600">Create and manage ECJ-branded service offerings</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Service Management</h2>
+          <p className="text-sm sm:text-base text-gray-600">Create and manage ECJ-branded service offerings</p>
         </div>
         {userRole === 'admin' && (
-          <Button onClick={handleCreateNew}>
-            <Plus className="w-4 h-4 mr-2" />
+          <Button 
+            className="button-glow gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto"
+            onClick={handleCreateNew}
+          >
+            <Plus className="w-4 h-4 sm:mr-2" />
             Create Service
           </Button>
         )}
       </div>
 
       {/* Status Filter */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant={filter === 'all' ? 'default' : 'outline'}
           size="sm"
+          className={filter === 'all' ? 'gradient-premium-green text-white shadow-premium' : ''}
           onClick={() => setFilter('all')}
         >
           All ({services.length})
@@ -262,56 +266,67 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
           {filteredServices.map((service) => {
             const statusBadge = getStatusBadge(service.status);
             return (
-              <Card key={service.id}>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">{service.serviceName}</h3>
+              <Card key={service.id} className="card-premium">
+                <CardContent className="p-3 sm:p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-4">
+                    <div className="flex-1 w-full sm:w-auto">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <h3 className="text-base sm:text-lg font-semibold tracking-tight break-words">{service.serviceName}</h3>
                         <Badge className={statusBadge.color}>
                           {statusBadge.text}
                         </Badge>
-                        <span className="text-sm text-gray-500 capitalize">
+                        <span className="text-xs sm:text-sm text-gray-500 capitalize whitespace-nowrap">
                           {service.category}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">{service.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-3 break-words">{service.description}</p>
                       
-                      <div className="flex gap-4 text-sm text-gray-600">
-                        <span>📊 {service.totalEventsDelivered || 0} events</span>
-                        <span>⭐ {service.averageRating || 0}/5</span>
-                        <span>📍 {service.coverageParishes?.length || 0} parishes</span>
+                      <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 text-xs sm:text-sm text-gray-600">
+                        <span className="whitespace-nowrap">📊 {service.totalEventsDelivered || 0} events</span>
+                        <span className="whitespace-nowrap">⭐ {service.averageRating || 0}/5</span>
+                        <span className="whitespace-nowrap">📍 {service.coverageParishes?.length || 0} parishes</span>
                       </div>
 
                       {service.internalNotes && (
-                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                        <div className="mt-3 p-2 sm:p-3 bg-yellow-50 border border-yellow-200 rounded text-xs break-words">
                           <strong>Internal Notes:</strong> {service.internalNotes}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:ml-4">
                       {userRole === 'admin' && (
                         <>
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(service)}>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEdit(service)}
+                            className="min-h-[40px] sm:h-8 min-w-[40px] sm:w-auto"
+                          >
                             <Edit className="w-4 h-4" />
                           </Button>
 
                           {service.status === 'draft' && (
-                            <Button variant="outline" size="sm" onClick={() => handleSubmitForApproval(service.id)}>
-                              <Send className="w-4 h-4 mr-1" />
-                              Submit
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleSubmitForApproval(service.id)}
+                              className="min-h-[40px] sm:h-8 whitespace-nowrap"
+                            >
+                              <Send className="w-4 h-4 sm:mr-1" />
+                              <span className="hidden sm:inline">Submit</span>
                             </Button>
                           )}
 
                           {service.status === 'approved' && (
                             <Button 
                               size="sm" 
-                              className="bg-green-600 hover:bg-green-700"
+                              className="button-glow min-h-[40px] sm:h-8 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
                               onClick={() => handlePublish(service.id)}
                             >
-                              <Play className="w-4 h-4 mr-1" />
-                              Publish
+                              <Play className="w-4 h-4 sm:mr-1" />
+                              <span className="hidden sm:inline">Publish</span>
+                              <span className="sm:hidden">Publish</span>
                             </Button>
                           )}
 
@@ -320,9 +335,11 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
                               variant="outline" 
                               size="sm" 
                               onClick={() => handlePause(service.id)}
+                              className="min-h-[40px] sm:h-8 whitespace-nowrap"
                             >
-                              <Pause className="w-4 h-4 mr-1" />
-                              Pause
+                              <Pause className="w-4 h-4 sm:mr-1" />
+                              <span className="hidden sm:inline">Pause</span>
+                              <span className="sm:hidden">Pause</span>
                             </Button>
                           )}
                         </>
@@ -387,11 +404,18 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
           {service.id ? 'Edit Service' : 'Create New Service'}
         </h2>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={onCancel}>
+          <Button 
+            variant="outline" 
+            onClick={onCancel}
+            className="min-h-[44px] sm:h-10 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all"
+          >
             <X className="w-4 h-4 mr-2" />
             Cancel
           </Button>
-          <Button onClick={onSave}>
+          <Button 
+            onClick={onSave}
+            className="button-glow min-h-[44px] sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
+          >
             <CheckCircle className="w-4 h-4 mr-2" />
             Save Service
           </Button>
@@ -462,7 +486,14 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
                 placeholder="e.g., Corporate events, Festivals"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
               />
-              <Button type="button" onClick={addTag}>Add</Button>
+              <Button 
+                type="button" 
+                onClick={addTag}
+                size="sm"
+                className="min-h-[40px] sm:h-8"
+              >
+                Add
+              </Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {service.goodFor?.map((tag: string, i: number) => (
@@ -489,13 +520,25 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
                 placeholder="e.g., 200+ high-res edited photos"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addDeliverable())}
               />
-              <Button type="button" onClick={addDeliverable}>Add</Button>
+              <Button 
+                type="button" 
+                onClick={addDeliverable}
+                size="sm"
+                className="min-h-[40px] sm:h-8"
+              >
+                Add
+              </Button>
             </div>
             <ul className="space-y-2">
               {service.deliverables?.map((item: string, i: number) => (
                 <li key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                   <span className="text-sm">{item}</span>
-                  <Button variant="ghost" size="sm" onClick={() => removeDeliverable(i)}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => removeDeliverable(i)}
+                    className="min-h-[40px] min-w-[40px] sm:h-8 sm:w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
                     <X className="w-4 h-4" />
                   </Button>
                 </li>

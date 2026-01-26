@@ -12,12 +12,12 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
   return (
     <div className="min-h-screen bg-[#f5f1eb]">
       {/* Header */}
-      <nav className="bg-white border-b border-[#755f5233]">
+      <nav className="glass bg-white border-b border-[#755f5233] shadow-premium">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-6">
               <h1 
-                className="text-2xl font-bold text-[#B0DD16] cursor-pointer" 
+                className="text-2xl font-bold text-[#B0DD16] cursor-pointer tracking-tight" 
                 onClick={() => onNavigate('home')}
               >
                 EventCoverageJamaica
@@ -36,7 +36,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
                   <Button variant="ghost" size="sm" onClick={() => onNavigate('login')}>
                     Login
                   </Button>
-                  <Button size="sm" className="bg-[#B0DD16] hover:bg-[#9ac514]" onClick={() => onNavigate('signup')}>
+                  <Button size="sm" className="button-glow gradient-premium-green shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all" onClick={() => onNavigate('signup')}>
                     Sign Up
                   </Button>
                 </>
@@ -75,7 +75,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Our Story */}
-          <Card className="mb-8 border-0 shadow-lg">
+          <Card className="mb-8 border-0 shadow-premium card-premium">
             <CardContent className="p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center">
@@ -98,7 +98,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
           </Card>
 
           {/* Our Mission */}
-          <Card className="mb-8 border-0 shadow-lg">
+          <Card className="mb-8 border-0 shadow-premium card-premium">
             <CardContent className="p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-[#755f52] rounded-xl flex items-center justify-center">
@@ -113,7 +113,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
           </Card>
 
           {/* What Makes Us Different */}
-          <Card className="mb-8 border-0 shadow-lg">
+          <Card className="mb-8 border-0 shadow-premium card-premium">
             <CardContent className="p-8">
               <h2 className="text-3xl font-bold text-[#755f52] mb-6">What Makes Us Different</h2>
               <div className="grid md:grid-cols-2 gap-6">
@@ -169,7 +169,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
           </Card>
 
           {/* Our Values */}
-          <Card className="mb-8 border-0 shadow-lg">
+          <Card className="mb-8 border-0 shadow-premium card-premium">
             <CardContent className="p-8">
               <h2 className="text-3xl font-bold text-[#755f52] mb-6">Our Core Values</h2>
               <div className="space-y-4">
@@ -206,7 +206,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
           </Card>
 
           {/* CTA */}
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-[#B0DD16] to-[#9ac514]">
+          <Card className="border-0 shadow-premium-lg bg-gradient-to-r from-[#B0DD16] to-[#9ac514]">
             <CardContent className="p-8 text-center">
               <h2 className="text-3xl font-bold text-white mb-4">
                 Ready to Experience the ECJ Difference?

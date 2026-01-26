@@ -45,8 +45,8 @@ export default function TalentManagement({ serverUrl, accessToken }: TalentManag
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Vetted Talent Pool</h2>
-          <p className="text-gray-600">Private crew roster - visible only to ECJ coordinators</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Vetted Talent Pool</h2>
+          <p className="text-sm sm:text-base text-gray-600">Private crew roster - visible only to ECJ coordinators</p>
         </div>
       </div>
 
@@ -60,35 +60,35 @@ export default function TalentManagement({ serverUrl, accessToken }: TalentManag
       </div>
 
       {/* Stats */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="card-premium">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-[#7fa589]">{approvedTalents.length}</div>
-            <div className="text-sm text-gray-600">Total Approved</div>
+            <div className="text-2xl font-bold text-[#7fa589] tracking-tight">{approvedTalents.length}</div>
+            <div className="text-xs sm:text-sm text-gray-600">Total Approved</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-premium">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-blue-600 tracking-tight">
               {approvedTalents.filter(t => t.skills?.includes('photo')).length}
             </div>
-            <div className="text-sm text-gray-600">Photographers</div>
+            <div className="text-xs sm:text-sm text-gray-600">Photographers</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-premium">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold text-purple-600 tracking-tight">
               {approvedTalents.filter(t => t.skills?.includes('video')).length}
             </div>
-            <div className="text-sm text-gray-600">Videographers</div>
+            <div className="text-xs sm:text-sm text-gray-600">Videographers</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-premium">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600 tracking-tight">
               {approvedTalents.filter(t => t.skills?.includes('audio')).length}
             </div>
-            <div className="text-sm text-gray-600">Audio Techs</div>
+            <div className="text-xs sm:text-sm text-gray-600">Audio Techs</div>
           </CardContent>
         </Card>
       </div>
@@ -106,17 +106,17 @@ export default function TalentManagement({ serverUrl, accessToken }: TalentManag
           </CardContent>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {filteredTalents.map((talent) => (
-            <Card key={talent.id} className="hover:shadow-lg transition">
+            <Card key={talent.id} className="card-premium hover-lift">
               <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">Talent #{talent.userId?.substring(0, 8)}</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">{talent.experience}</p>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-2">
+                  <div className="flex-1">
+                    <CardTitle className="text-base sm:text-lg tracking-tight">Talent #{talent.userId?.substring(0, 8)}</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">{talent.experience}</p>
                   </div>
                   {talent.tier && (
-                    <Badge className="bg-[#7fa589] text-white">
+                    <Badge className="gradient-premium text-white shadow-premium">
                       {talent.tier}
                     </Badge>
                   )}

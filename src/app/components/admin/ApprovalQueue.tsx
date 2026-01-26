@@ -201,27 +201,27 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Approval Queue</h2>
-        <p className="text-gray-600">Review and approve services and talent applications</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Approval Queue</h2>
+        <p className="text-sm sm:text-base text-gray-600">Review and approve services and talent applications</p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b">
         <button
-          className={`px-4 py-2 font-medium ${
+          className={`px-3 sm:px-4 py-2 text-sm sm:text-base font-medium transition-colors ${
             activeTab === 'services'
-              ? 'border-b-2 border-[#7fa589] text-[#7fa589]'
-              : 'text-gray-600'
+              ? 'border-b-2 border-[#B0DD16] text-[#B0DD16]'
+              : 'text-gray-600 hover:text-gray-900'
           }`}
           onClick={() => setActiveTab('services')}
         >
           Services ({services.length})
         </button>
         <button
-          className={`px-4 py-2 font-medium ${
+          className={`px-3 sm:px-4 py-2 text-sm sm:text-base font-medium transition-colors ${
             activeTab === 'talents'
-              ? 'border-b-2 border-[#7fa589] text-[#7fa589]'
-              : 'text-gray-600'
+              ? 'border-b-2 border-[#B0DD16] text-[#B0DD16]'
+              : 'text-gray-600 hover:text-gray-900'
           }`}
           onClick={() => setActiveTab('talents')}
         >
@@ -245,24 +245,27 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
         ) : (
           <div className="space-y-4">
             {services.map((service) => (
-              <Card key={service.id}>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
+              <Card key={service.id} className="card-premium">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">{service.serviceName}</h3>
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <h3 className="text-base sm:text-lg font-semibold tracking-tight">{service.serviceName}</h3>
                         <Badge className="bg-yellow-100 text-yellow-800">
                           Pending Approval
                         </Badge>
-                        <span className="text-sm text-gray-500 capitalize">{service.category}</span>
+                        <span className="text-xs sm:text-sm text-gray-500 capitalize">{service.category}</span>
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{service.description}</p>
                       <div className="text-xs text-gray-500">
                         Submitted: {new Date(service.updatedAt).toLocaleDateString()}
                       </div>
                     </div>
-                    <Button onClick={() => setReviewingItem(service)}>
-                      <Eye className="w-4 h-4 mr-2" />
+                    <Button 
+                      className="button-glow gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto"
+                      onClick={() => setReviewingItem(service)}
+                    >
+                      <Eye className="w-4 h-4 sm:mr-2" />
                       Review
                     </Button>
                   </div>
@@ -282,11 +285,11 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
         ) : (
           <div className="space-y-4">
             {talents.map((talent) => (
-              <Card key={talent.id}>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
+              <Card key={talent.id} className="card-premium">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold mb-2">Talent Application</h3>
+                      <h3 className="text-base sm:text-lg font-semibold mb-2 tracking-tight">Talent Application</h3>
                       <div className="text-sm text-gray-700 mb-2">
                         <strong>Skills:</strong> {talent.skills?.join(', ')}
                       </div>
@@ -297,8 +300,11 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
                         Applied: {new Date(talent.createdAt).toLocaleDateString()}
                       </div>
                     </div>
-                    <Button onClick={() => setReviewingItem(talent)}>
-                      <Eye className="w-4 h-4 mr-2" />
+                    <Button 
+                      className="button-glow gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto"
+                      onClick={() => setReviewingItem(talent)}
+                    >
+                      <Eye className="w-4 h-4 sm:mr-2" />
                       Review
                     </Button>
                   </div>
@@ -400,20 +406,20 @@ function ServiceReviewCard({ service, reviewNotes, onNotesChange, onApprove, onR
             />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
-              className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+              className="flex-1 min-h-[44px] sm:h-10 border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all"
               onClick={onReject}
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              <XCircle className="w-4 h-4 sm:mr-2" />
               Request Changes
             </Button>
             <Button
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="button-glow flex-1 min-h-[44px] sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
               onClick={onApprove}
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
+              <CheckCircle className="w-4 h-4 sm:mr-2" />
               Approve Service
             </Button>
           </div>
@@ -496,20 +502,20 @@ function TalentReviewCard({ talent, reviewNotes, onNotesChange, onApprove, onRej
             />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
-              className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+              className="flex-1 min-h-[44px] sm:h-10 border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all"
               onClick={onReject}
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              <XCircle className="w-4 h-4 sm:mr-2" />
               Reject Application
             </Button>
             <Button
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="button-glow flex-1 min-h-[44px] sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
               onClick={onApprove}
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
+              <CheckCircle className="w-4 h-4 sm:mr-2" />
               Approve & Add to Crew
             </Button>
           </div>

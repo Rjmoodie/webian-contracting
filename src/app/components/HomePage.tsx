@@ -25,19 +25,20 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f1eb] via-[#ebe4d8] to-[#e8dfd1] scroll-smooth">
       {/* Navigation */}
-      <nav className="bg-[#755f52] backdrop-blur-sm bg-opacity-95 sticky top-0 z-50 shadow-lg border-b border-[#5a4a3f]">
+      <nav className="glass-dark sticky top-0 z-50 shadow-premium-lg border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">{/* Reduced from h-20 */}
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('home')}>
-                <div className="w-9 h-9 bg-[#c9a882] rounded-lg flex items-center justify-center">{/* Reduced from w-10 h-10 */}
-                  <Camera className="w-5 h-5 text-[#755f52]" />{/* Reduced from w-6 h-6 */}
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-4 sm:gap-8">
+              <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => onNavigate('home')}>
+                <div className="w-8 h-8 sm:w-9 sm:h-9 gradient-premium-gold rounded-xl flex items-center justify-center shadow-premium hover:scale-105 transition-transform">
+                  <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-white tracking-tight">{/* Reduced from text-xl */}
-                    EventCoverageJamaica
+                  <h1 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                    <span className="hidden sm:inline">EventCoverageJamaica</span>
+                    <span className="sm:hidden">ECJ</span>
                   </h1>
-                  <p className="text-[10px] text-[#c9a882]">Professional Event Services</p>{/* Reduced from text-xs */}
+                  <p className="text-[9px] sm:text-[10px] text-[#c9a882] hidden sm:block">Professional Event Services</p>
                 </div>
               </div>
               <div className="hidden md:flex gap-6">
@@ -61,47 +62,145 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <Button
-                    variant="ghost"
-                    className="text-white hover:text-[#c9a882] hover:bg-[#8b7263]"
-                    onClick={() => {
-                      if (user.role === 'client') onNavigate('client-dashboard');
-                      else if (user.role === 'talent') onNavigate('talent-dashboard');
-                      else if (user.role === 'admin' || user.role === 'manager') onNavigate('admin-dashboard');
-                    }}
-                  >
-                    Dashboard
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="border-[#c9a882] text-[#c9a882] hover:bg-[#c9a882] hover:text-[#755f52]"
-                    onClick={onLogout}
-                  >
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    className="text-white hover:text-[#c9a882] hover:bg-[#8b7263]"
-                    onClick={() => onNavigate('login')}
-                  >
-                    Login
-                  </Button>
-                  <Button 
-                    className="bg-[#B0DD16] hover:bg-[#9ac514] text-white font-semibold"
-                    onClick={() => onNavigate('signup')}
-                  >
-                    Get Started
-                  </Button>
-                </>
-              )}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden text-white p-2 hover:bg-[#8b7263] rounded-lg transition"
+                aria-label="Toggle menu"
+              >
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+              
+              {/* Desktop Auth Buttons */}
+              <div className="hidden md:flex items-center gap-3">
+                {user ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="text-white hover:text-[#c9a882] hover:bg-[#8b7263] text-sm"
+                      onClick={() => {
+                        if (user.role === 'client') onNavigate('client-dashboard');
+                        else if (user.role === 'talent') onNavigate('talent-dashboard');
+                        else if (user.role === 'admin' || user.role === 'manager') onNavigate('admin-dashboard');
+                      }}
+                    >
+                      Dashboard
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-[#c9a882] text-[#c9a882] hover:bg-[#c9a882] hover:text-[#755f52]"
+                      onClick={onLogout}
+                    >
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-white hover:text-[#c9a882] hover:bg-[#8b7263]"
+                      onClick={() => onNavigate('login')}
+                    >
+                      Login
+                    </Button>
+                    <Button 
+                      size="sm"
+                      className="bg-[#B0DD16] hover:bg-[#9ac514] text-white font-semibold"
+                      onClick={() => onNavigate('signup')}
+                    >
+                      Get Started
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
+          
+          {/* Mobile Menu */}
+          {isMenuOpen && (
+            <div className="md:hidden border-t border-[#5a4a3f] py-4">
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    onNavigate('services');
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-left text-white hover:text-[#c9a882] font-medium transition px-2 py-2"
+                >
+                  Services
+                </button>
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-left text-white hover:text-[#c9a882] font-medium transition px-2 py-2"
+                >
+                  How It Works
+                </button>
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-left text-white hover:text-[#c9a882] font-medium transition px-2 py-2"
+                >
+                  Coverage
+                </button>
+                <div className="border-t border-[#5a4a3f] pt-3 mt-2">
+                  {user ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-white hover:text-[#c9a882] hover:bg-[#8b7263] mb-2"
+                        onClick={() => {
+                          if (user.role === 'client') onNavigate('client-dashboard');
+                          else if (user.role === 'talent') onNavigate('talent-dashboard');
+                          else if (user.role === 'admin' || user.role === 'manager') onNavigate('admin-dashboard');
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Dashboard
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="w-full border-[#c9a882] text-[#c9a882] hover:bg-[#c9a882] hover:text-[#755f52]"
+                        onClick={() => {
+                          onLogout();
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Logout
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start text-white hover:text-[#c9a882] hover:bg-[#8b7263] mb-2"
+                        onClick={() => {
+                          onNavigate('login');
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Login
+                      </Button>
+                      <Button 
+                        className="w-full bg-[#B0DD16] hover:bg-[#9ac514] text-white font-semibold"
+                        onClick={() => {
+                          onNavigate('signup');
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Get Started
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -117,31 +216,31 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
           <div className="absolute inset-0 bg-gradient-to-r from-[#755f52] via-[#755f52cc] to-[#755f5299]"></div>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">{/* Reduced from py-32 */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
           <div className="max-w-3xl">
             <Badge className="bg-[#B0DD16] text-white mb-4 text-sm px-4 py-1.5 font-semibold">{/* Reduced from mb-6 */}
               Jamaica's Premier Event Coverage Platform
             </Badge>
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 leading-tight">{/* Reduced from mb-6 */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 leading-tight">
               Professional Event Coverage.
               <span className="block text-[#c9a882]">Guaranteed Excellence.</span>
             </h1>
-            <p className="text-xl text-[#e8dfd1] mb-6 leading-relaxed">{/* Reduced from mb-8 */}
+            <p className="text-base sm:text-lg md:text-xl text-[#e8dfd1] mb-6 leading-relaxed">
               ECJ-vetted professionals deliver broadcast-grade photography, videography, and audio services islandwide with guaranteed on-time delivery.
             </p>
-            <div className="flex flex-wrap gap-4 mb-6">{/* Reduced from mb-8 */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6">
               <Button 
                 size="lg" 
-                className="text-lg px-10 py-7 bg-[#B0DD16] hover:bg-[#9ac514] text-white font-bold rounded-xl shadow-2xl"
+                className="button-glow text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 gradient-premium-green text-white font-bold rounded-xl shadow-premium-xl hover:shadow-premium-xl hover:scale-105 transition-all w-full sm:w-auto"
                 onClick={() => onNavigate(user ? 'client-dashboard' : 'signup')}
               >
                 Request Coverage
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline"
-                className="text-lg px-10 py-7 bg-white bg-opacity-10 backdrop-blur-sm text-white border-2 border-white hover:bg-white hover:text-[#755f52] font-semibold rounded-xl"
+                className="text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 glass text-white border-2 border-white/30 hover:bg-white hover:text-[#755f52] font-semibold rounded-xl w-full sm:w-auto hover:border-white transition-all"
                 onClick={() => onNavigate('services')}
               >
                 Browse Services
@@ -149,18 +248,18 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
 
             {/* Trust Indicators */}
-            <div className="flex flex-wrap items-center gap-6 mt-12">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-8 sm:mt-12">
               <div className="flex items-center gap-2 text-white">
-                <Star className="w-5 h-5 text-[#B0DD16] fill-current" />
-                <span className="font-semibold">5.0 Average Rating</span>
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-[#B0DD16] fill-current" />
+                <span className="text-sm sm:text-base font-semibold">5.0 Average Rating</span>
               </div>
               <div className="flex items-center gap-2 text-white">
-                <Award className="w-5 h-5 text-[#B0DD16]" />
-                <span className="font-semibold">100% Vetted</span>
+                <Award className="w-4 h-4 sm:w-5 sm:h-5 text-[#B0DD16]" />
+                <span className="text-sm sm:text-base font-semibold">100% Vetted</span>
               </div>
               <div className="flex items-center gap-2 text-white">
-                <MapPin className="w-5 h-5 text-[#B0DD16]" />
-                <span className="font-semibold">All 14 Parishes</span>
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#B0DD16]" />
+                <span className="text-sm sm:text-base font-semibold">All 14 Parishes</span>
               </div>
             </div>
           </div>
@@ -168,11 +267,11 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       </section>
 
       {/* Trust Signals */}
-      <section className="py-12 px-4 bg-white">{/* Reduced from py-16 */}
+      <section className="py-8 sm:py-12 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">{/* Reduced from gap-8 */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             <div className="text-center group">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#755f52] to-[#8b7263] text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-lg">{/* Reduced size and mb */}
+              <div className="w-14 h-14 gradient-premium text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-premium hover:shadow-premium-lg">{/* Reduced size and mb */}
                 <Shield className="w-7 h-7 text-[#B0DD16]" />{/* Reduced from w-8 h-8 */}
               </div>
               <h3 className="font-bold text-[#755f52] text-base mb-1">{/* Reduced from text-lg */}
@@ -181,7 +280,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
               <p className="text-xs text-gray-600">Verified & certified</p>{/* Reduced from text-sm */}
             </div>
             <div className="text-center group">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#755f52] to-[#8b7263] text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-lg">
+              <div className="w-14 h-14 gradient-premium text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-premium hover:shadow-premium-lg">
                 <CheckCircle2 className="w-7 h-7 text-[#B0DD16]" />
               </div>
               <h3 className="font-bold text-[#755f52] text-base mb-1">
@@ -190,7 +289,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
               <p className="text-xs text-gray-600">Secure agreements</p>
             </div>
             <div className="text-center group">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#755f52] to-[#8b7263] text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-lg">
+              <div className="w-14 h-14 gradient-premium text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-premium hover:shadow-premium-lg">
                 <MapPin className="w-7 h-7 text-[#B0DD16]" />
               </div>
               <h3 className="font-bold text-[#755f52] text-base mb-1">
@@ -199,7 +298,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
               <p className="text-xs text-gray-600">All 14 parishes</p>
             </div>
             <div className="text-center group">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#755f52] to-[#8b7263] text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-lg">
+              <div className="w-14 h-14 gradient-premium text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-premium hover:shadow-premium-lg">
                 <Clock className="w-7 h-7 text-[#B0DD16]" />
               </div>
               <h3 className="font-bold text-[#755f52] text-base mb-1">
@@ -212,21 +311,21 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       </section>
 
       {/* Our Service Guarantee */}
-      <section className="py-16 px-4 bg-[#755f52]">
+      <section className="py-12 sm:py-16 px-4 bg-[#755f52]">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <Badge className="bg-[#B0DD16] text-white mb-3 px-4 py-1.5 font-semibold">
+          <div className="text-center mb-8 sm:mb-12">
+            <Badge className="bg-[#B0DD16] text-white mb-3 px-3 sm:px-4 py-1.5 font-semibold text-xs sm:text-sm">
               The ECJ Difference
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-3">Our Service Guarantee</h2>
-            <p className="text-lg text-[#e8dfd1] max-w-3xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 px-4">Our Service Guarantee</h2>
+            <p className="text-base sm:text-lg text-[#e8dfd1] max-w-3xl mx-auto px-4">
               Every service is backed by our commitment to excellence and delivered by vetted professionals
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 px-4">
             {/* Vetted Professionals */}
-            <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="card-premium bg-white rounded-2xl overflow-hidden hover-lift">
               <div className="relative h-48 overflow-hidden">
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1618397806877-f0187730803f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBwaG90b2dyYXBoZXIlMjBjZXJ0aWZpZWR8ZW58MXx8fHwxNzY5MzY1MjM4fDA&ixlib=rb-4.1.0&q=80&w=1080"
@@ -235,13 +334,13 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#755f52] via-transparent to-transparent opacity-60"></div>
                 <div className="absolute top-4 left-4">
-                  <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center shadow-lg">
+                  <div className="w-12 h-12 gradient-premium-green rounded-xl flex items-center justify-center shadow-premium">
                     <Award className="w-6 h-6 text-white" />
                   </div>
                 </div>
               </div>
               <div className="p-6">
-                <h3 className="font-bold text-xl text-[#755f52] mb-2">
+                <h3 className="font-bold text-xl text-[#755f52] mb-2 tracking-tight">
                   Vetted Professionals
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
@@ -254,7 +353,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
 
             {/* Pro Equipment */}
-            <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="card-premium bg-white rounded-2xl overflow-hidden hover-lift">
               <div className="relative h-48 overflow-hidden">
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1758851088217-df00ca346e24?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxicm9hZGNhc3QlMjBjYW1lcmElMjBlcXVpcG1lbnR8ZW58MXx8fHwxNzY5MzY1MjM4fDA&ixlib=rb-4.1.0&q=80&w=1080"
@@ -263,13 +362,13 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#755f52] via-transparent to-transparent opacity-60"></div>
                 <div className="absolute top-4 left-4">
-                  <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center shadow-lg">
+                  <div className="w-12 h-12 gradient-premium-green rounded-xl flex items-center justify-center shadow-premium">
                     <Camera className="w-6 h-6 text-white" />
                   </div>
                 </div>
               </div>
               <div className="p-6">
-                <h3 className="font-bold text-xl text-[#755f52] mb-2">
+                <h3 className="font-bold text-xl text-[#755f52] mb-2 tracking-tight">
                   Pro Equipment
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
@@ -282,7 +381,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
 
             {/* Backup Systems */}
-            <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="card-premium bg-white rounded-2xl overflow-hidden hover-lift">
               <div className="relative h-48 overflow-hidden">
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1689236673934-66f8e9d9279b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYWNrdXAlMjBjb21wdXRlciUyMHN5c3RlbXN8ZW58MXx8fHwxNzY5MzY1MjQzfDA&ixlib=rb-4.1.0&q=80&w=1080"
@@ -291,13 +390,13 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#755f52] via-transparent to-transparent opacity-60"></div>
                 <div className="absolute top-4 left-4">
-                  <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center shadow-lg">
+                  <div className="w-12 h-12 gradient-premium-green rounded-xl flex items-center justify-center shadow-premium">
                     <CheckCircle2 className="w-6 h-6 text-white" />
                   </div>
                 </div>
               </div>
               <div className="p-6">
-                <h3 className="font-bold text-xl text-[#755f52] mb-2">
+                <h3 className="font-bold text-xl text-[#755f52] mb-2 tracking-tight">
                   Backup Systems
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
@@ -310,7 +409,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
 
             {/* On-Time Delivery */}
-            <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="card-premium bg-white rounded-2xl overflow-hidden hover-lift">
               <div className="relative h-48 overflow-hidden">
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1579120632007-f493373daed0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZWxpdmVyeSUyMHRydWNrJTIwc2NoZWR1bGV8ZW58MXx8fHwxNzY5MzY1MjM5fDA&ixlib=rb-4.1.0&q=80&w=1080"
@@ -319,13 +418,13 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#755f52] via-transparent to-transparent opacity-60"></div>
                 <div className="absolute top-4 left-4">
-                  <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center shadow-lg">
+                  <div className="w-12 h-12 gradient-premium-green rounded-xl flex items-center justify-center shadow-premium">
                     <Clock className="w-6 h-6 text-white" />
                   </div>
                 </div>
               </div>
               <div className="p-6">
-                <h3 className="font-bold text-xl text-[#755f52] mb-2">
+                <h3 className="font-bold text-xl text-[#755f52] mb-2 tracking-tight">
                   On-Time Delivery
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
@@ -341,21 +440,21 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       </section>
 
       {/* Services Section */}
-      <section className="py-16 px-4" id="services">{/* Reduced from py-24 */}
+      <section className="py-12 sm:py-16 px-4" id="services">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">{/* Reduced from mb-16 */}
-            <Badge className="bg-[#755f52] text-white mb-3 px-4 py-1.5">{/* Reduced from mb-4 */}
+          <div className="text-center mb-8 sm:mb-12">
+            <Badge className="bg-[#755f52] text-white mb-3 px-3 sm:px-4 py-1.5 text-xs sm:text-sm">
               Professional Services
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-[#755f52] mb-3">ECJ Coverage Services</h2>{/* Reduced from mb-4 */}
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[#755f52] mb-3 px-4">ECJ Coverage Services</h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto px-4">
               Broadcast-grade coverage delivered by vetted professionals
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-6">{/* Reduced from gap-8 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4">
             {/* Photography */}
-            <div className="group relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer bg-white">
+            <div className="group relative overflow-hidden rounded-2xl card-premium hover-lift cursor-pointer bg-white">
               <div className="relative h-64 overflow-hidden">
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=800&q=80"
@@ -389,7 +488,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                   </li>
                 </ul>
                 <Button 
-                  className="w-full bg-[#B0DD16] hover:bg-[#9ac514] text-white rounded-xl"
+                  className="button-glow w-full gradient-premium-green text-white rounded-xl shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
                   onClick={() => onNavigate('services')}
                 >
                   View Photography Services
@@ -398,7 +497,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
 
             {/* Videography */}
-            <div className="group relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer bg-white">
+            <div className="group relative overflow-hidden rounded-2xl card-premium hover-lift cursor-pointer bg-white">
               <div className="relative h-64 overflow-hidden">
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&q=80"
@@ -432,7 +531,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                   </li>
                 </ul>
                 <Button 
-                  className="w-full bg-[#B0DD16] hover:bg-[#9ac514] text-white rounded-xl"
+                  className="button-glow w-full gradient-premium-green text-white rounded-xl shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
                   onClick={() => onNavigate('services')}
                 >
                   View Video Services
@@ -441,7 +540,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
 
             {/* Audio */}
-            <div className="group relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer bg-white">
+            <div className="group relative overflow-hidden rounded-2xl card-premium hover-lift cursor-pointer bg-white">
               <div className="relative h-64 overflow-hidden">
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&q=80"
@@ -475,7 +574,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                   </li>
                 </ul>
                 <Button 
-                  className="w-full bg-[#B0DD16] hover:bg-[#9ac514] text-white rounded-xl"
+                  className="button-glow w-full gradient-premium-green text-white rounded-xl shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
                   onClick={() => onNavigate('services')}
                 >
                   View Audio Services
@@ -487,17 +586,17 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       </section>
 
       {/* Coverage Map */}
-      <section className="py-16 px-4 bg-gradient-to-br from-[#f5f1eb] via-[#ebe4d8] to-[#e8dfd1]">
+      <section className="py-12 sm:py-16 px-4 bg-gradient-to-br from-[#f5f1eb] via-[#ebe4d8] to-[#e8dfd1]">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <Badge className="bg-[#755f52] text-white mb-3 px-4 py-1.5">
+          <div className="text-center mb-6 sm:mb-10">
+            <Badge className="bg-[#755f52] text-white mb-3 px-3 sm:px-4 py-1.5 text-xs sm:text-sm">
               Islandwide Service
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#755f52] mb-3">Complete Parish Coverage</h2>
-            <p className="text-base text-gray-600 mb-2">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#755f52] mb-3 px-4">Complete Parish Coverage</h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-2 px-4">
               Professional event coverage available in all 14 parishes of Jamaica
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-500 px-4">
               Click on any parish to explore our coverage
             </p>
           </div>
@@ -510,26 +609,27 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
 
           {/* Parish Info Display */}
           {selectedParish && (
-            <div className="mt-8 bg-white rounded-2xl p-6 shadow-xl border-2 border-[#755f52]/20">
-              <div className="flex items-center justify-between mb-4">
+            <div className="mt-6 sm:mt-8 bg-white rounded-2xl p-4 sm:p-6 shadow-xl border-2 border-[#755f52]/20 mx-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center">
-                    <MapPin className="w-6 h-6 text-white" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 gradient-premium-green rounded-xl flex items-center justify-center shadow-premium">
+                    <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-[#755f52]">{selectedParish}</h3>
-                    <p className="text-sm text-gray-600">Full coverage available</p>
+                    <h3 className="text-xl sm:text-2xl font-bold text-[#755f52]">{selectedParish}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Full coverage available</p>
                   </div>
                 </div>
                 <Button
                   onClick={() => setSelectedParish(null)}
                   variant="outline"
-                  className="text-[#755f52] border-[#755f52]"
+                  size="sm"
+                  className="text-[#755f52] border-[#755f52] w-full sm:w-auto"
                 >
                   Close
                 </Button>
               </div>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 <div className="bg-gradient-to-br from-[#755f52]/10 to-[#755f52]/5 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Camera className="w-5 h-5 text-[#755f52]" />
@@ -554,7 +654,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
               </div>
               <div className="mt-4">
                 <Button 
-                  className="w-full bg-[#B0DD16] hover:bg-[#9ac514] text-white font-semibold"
+                  className="button-glow w-full gradient-premium-green text-white font-semibold shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
                   onClick={() => onNavigate('services')}
                 >
                   Book Services in {selectedParish}
@@ -566,33 +666,33 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-20 px-4 overflow-hidden">{/* Reduced from py-24 */}
+      <section className="relative py-12 sm:py-16 md:py-20 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#755f52] to-[#8b7263]"></div>
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-96 h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
+          <div className="absolute top-10 left-10 w-64 h-64 sm:w-96 sm:h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 right-10 w-64 h-64 sm:w-96 sm:h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
         </div>
         
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{/* Reduced sizes and mb */}
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 px-4">
             Ready for Professional Event Coverage?
           </h2>
-          <p className="text-lg text-[#e8dfd1] mb-8 leading-relaxed">{/* Reduced sizes and mb */}
+          <p className="text-base sm:text-lg text-[#e8dfd1] mb-6 sm:mb-8 leading-relaxed px-4">
             Join hundreds of satisfied clients who trust EventCoverageJamaica for their most important events
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
             <Button 
               size="lg" 
-              className="text-lg px-10 py-7 bg-[#B0DD16] hover:bg-[#9ac514] text-white font-bold rounded-xl shadow-2xl"
+              className="button-glow text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 gradient-premium-green text-white font-bold rounded-xl shadow-premium-xl hover:shadow-premium-xl hover:scale-105 transition-all w-full sm:w-auto"
               onClick={() => onNavigate(user ? 'client-dashboard' : 'signup')}
             >
               Request Coverage Now
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="text-lg px-10 py-7 bg-white bg-opacity-10 backdrop-blur-sm text-white border-2 border-white hover:bg-white hover:text-[#755f52] font-semibold rounded-xl"
+              className="text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 glass text-white border-2 border-white/30 hover:bg-white hover:text-[#755f52] font-semibold rounded-xl w-full sm:w-auto hover:border-white transition-all"
               onClick={() => onNavigate('services')}
             >
               View All Services
@@ -602,9 +702,9 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#3d332c] text-gray-400 py-12 px-4">{/* Reduced from py-16 */}
+      <footer className="bg-[#3d332c] text-gray-400 py-8 sm:py-12 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">{/* Reduced gaps and mb */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">{/* Reduced from mb-4 */}
                 <div className="w-8 h-8 bg-[#c9a882] rounded-lg flex items-center justify-center">

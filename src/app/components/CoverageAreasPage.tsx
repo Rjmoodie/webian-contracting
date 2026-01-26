@@ -220,7 +220,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
                     <button
                       key={parish}
                       onClick={() => setSelectedParish(parish === selectedParish ? null : parish)}
-                      className={`px-6 py-3 rounded-full font-bold text-sm transition-all duration-300 ${
+                      className={`min-h-[44px] px-4 sm:px-6 py-2.5 sm:py-3 rounded-full font-bold text-xs sm:text-sm transition-all duration-300 ${
                         selectedParish === parish
                           ? 'bg-[#B0DD16] text-white shadow-lg scale-105'
                           : 'bg-white text-[#755f52] border-2 border-[#755f52] hover:bg-[#755f52] hover:text-white hover:scale-105'
@@ -237,7 +237,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
                     <button
                       key={parish}
                       onClick={() => setSelectedParish(parish === selectedParish ? null : parish)}
-                      className={`px-6 py-3 rounded-full font-bold text-sm transition-all duration-300 ${
+                      className={`min-h-[44px] px-4 sm:px-6 py-2.5 sm:py-3 rounded-full font-bold text-xs sm:text-sm transition-all duration-300 ${
                         selectedParish === parish
                           ? 'bg-[#B0DD16] text-white shadow-lg scale-105'
                           : 'bg-white text-[#755f52] border-2 border-[#755f52] hover:bg-[#755f52] hover:text-white hover:scale-105'

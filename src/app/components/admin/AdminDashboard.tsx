@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { projectId, publicAnonKey } from '/utils/supabase/info';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -21,12 +23,88 @@ interface AdminDashboardProps {
   onNavigate: (page: string) => void;
 }
 
+// Use singleton Supabase client at module level to avoid multiple instances
+let supabaseInstance: SupabaseClient | null = null;
+const getSupabase = () => {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(
+      `https://${projectId}.supabase.co`,
+      publicAnonKey
+    );
+  }
+  return supabaseInstance;
+};
+
 export default function AdminDashboard({ user, serverUrl, accessToken, onLogout, onNavigate }: AdminDashboardProps) {
   const [requests, setRequests] = useState<any[]>([]);
   const [pendingTalents, setPendingTalents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [talentTiers, setTalentTiers] = useState<Record<string, string>>({});
+  const [currentToken, setCurrentToken] = useState<string>(accessToken);
+
+  // Helper function to get fresh token from Supabase
+  const getFreshToken = async (): Promise<string | null> => {
+    try {
+      const supabase = getSupabase();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        setCurrentToken(session.access_token);
+        return session.access_token;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting fresh token:', error);
+      return null;
+    }
+  };
+
+  // Helper function to make authenticated requests with token refresh
+  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
+    let token = currentToken || accessToken;
+    
+    // If no token, try to get a fresh one
+    if (!token) {
+      token = await getFreshToken();
+      if (!token) {
+        console.error('No access token available');
+        onLogout();
+        return null;
+      }
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    // If 401, try refreshing token once
+    if (response.status === 401) {
+      const freshToken = await getFreshToken();
+      if (freshToken && freshToken !== token) {
+        // Retry with fresh token
+        return await fetch(url, {
+          ...options,
+          headers: {
+            ...options.headers,
+            'Authorization': `Bearer ${freshToken}`,
+          },
+        });
+      } else {
+        // Token refresh failed, logout
+        console.error('Authentication failed. Please log in again.');
+        toast.error('Session expired. Please log in again.');
+        onLogout();
+        return null;
+      }
+    }
+
+    return response;
+  };
 
   // If viewing request details, show RequestDetailsPage
   if (selectedRequest) {
@@ -35,7 +113,7 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
         requestId={selectedRequest.id}
         user={user}
         serverUrl={serverUrl}
-        accessToken={accessToken}
+        accessToken={currentToken || accessToken}
         onBack={() => {
           setSelectedRequest(null);
           fetchRequests();
@@ -45,17 +123,33 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
   }
 
   useEffect(() => {
-    fetchRequests();
-    fetchPendingTalents();
+    if (currentToken || accessToken) {
+      fetchRequests();
+      fetchPendingTalents();
+    } else {
+      // Try to get token on mount
+      getFreshToken().then((token) => {
+        if (token) {
+          fetchRequests();
+          fetchPendingTalents();
+        } else {
+          setLoading(false);
+          toast.error('Please log in to continue');
+          onLogout();
+        }
+      });
+    }
   }, []);
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch(`${serverUrl}/requests`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      const response = await makeAuthenticatedRequest(`${serverUrl}/requests`);
+
+      if (!response) {
+        setRequests([]);
+        setLoading(false);
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -74,11 +168,11 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
 
   const fetchPendingTalents = async () => {
     try {
-      const response = await fetch(`${serverUrl}/admin/talent/pending`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      const response = await makeAuthenticatedRequest(`${serverUrl}/admin/talent/pending`);
+
+      if (!response) {
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -91,14 +185,17 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
 
   const updateRequestStatus = async (requestId: string, status: string) => {
     try {
-      const response = await fetch(`${serverUrl}/requests/${requestId}/status`, {
+      const response = await makeAuthenticatedRequest(`${serverUrl}/requests/${requestId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ status }),
       });
+
+      if (!response) {
+        return;
+      }
 
       if (response.ok) {
         toast.success('Request status updated');
@@ -114,17 +211,25 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
 
   const reviewTalent = async (talentId: string, status: 'approved' | 'rejected', tier?: string) => {
     try {
-      const response = await fetch(`${serverUrl}/admin/talent/${talentId}/review`, {
+      const selectedTier = tier || talentTiers[talentId] || 'certified';
+      const response = await makeAuthenticatedRequest(`${serverUrl}/admin/talent/${talentId}/review`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ status, tier: status === 'approved' ? tier : null }),
+        body: JSON.stringify({ status, tier: status === 'approved' ? selectedTier : null }),
       });
+
+      if (!response) {
+        return;
+      }
 
       if (response.ok) {
         toast.success(`Talent ${status}!`);
+        // Remove from tiers state
+        const newTiers = { ...talentTiers };
+        delete newTiers[talentId];
+        setTalentTiers(newTiers);
         fetchPendingTalents();
       } else {
         toast.error('Failed to review talent');
@@ -155,32 +260,36 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f1eb] via-[#ebe4d8] to-[#e8dfd1]">
       {/* Header */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
+      <nav className="glass bg-white border-b border-gray-200 shadow-premium">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('home')}>
-                <div className="w-10 h-10 bg-[#755f52] rounded-xl flex items-center justify-center">
-                  <Camera className="w-6 h-6 text-[#c9a882]" />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center h-auto sm:h-16 py-3 sm:py-0 gap-3 sm:gap-0">
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => onNavigate('home')}>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 gradient-premium rounded-xl flex items-center justify-center shadow-premium hover:scale-105 transition-transform">
+                  <Camera className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-[#755f52]">EventCoverageJamaica</h1>
+                  <h1 className="text-base sm:text-xl font-bold text-[#755f52] tracking-tight">
+                    <span className="hidden sm:inline">EventCoverageJamaica</span>
+                    <span className="sm:hidden">ECJ</span>
+                  </h1>
                 </div>
               </div>
-              <Badge className="bg-[#755f52] text-[#c9a882] border-0">
+              <Badge className="gradient-premium text-white border-0 shadow-premium text-xs sm:text-sm whitespace-nowrap">
                 {user.role === 'admin' ? 'Admin' : 'Manager'} Portal
               </Badge>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-[#755f52]">Hi, {user.name}</span>
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <span className="text-xs sm:text-sm font-medium text-[#755f52] whitespace-nowrap">Hi, {user.name}</span>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={onLogout}
-                className="text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb]"
+                className="min-h-[44px] sm:h-8 text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb] text-xs sm:text-sm whitespace-nowrap ml-auto sm:ml-0"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+                <LogOut className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Logout</span>
+                <span className="sm:hidden">Logout</span>
               </Button>
             </div>
           </div>
@@ -189,21 +298,23 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Card */}
-        <Card className="mb-8 bg-gradient-to-r from-[#755f52] to-[#8b7263] text-white border-0 shadow-xl overflow-hidden">
-          <CardContent className="p-8">
-            <div className="flex justify-between items-center">
-              <div>
+        <Card className="mb-6 sm:mb-8 gradient-premium text-white border-0 shadow-premium-xl overflow-hidden">
+          <CardContent className="p-4 sm:p-6 md:p-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
-                  <Shield className="w-8 h-8 text-[#B0DD16]" />
-                  <h2 className="text-3xl font-bold">Admin Dashboard</h2>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 gradient-premium-green rounded-xl flex items-center justify-center shadow-premium">
+                    <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin Dashboard</h2>
                 </div>
-                <p className="text-[#e8dfd1] text-lg">
+                <p className="text-[#e8dfd1] text-base sm:text-lg">
                   Manage services, approve talent, and coordinate event coverage across Jamaica
                 </p>
               </div>
               <div className="hidden md:block">
-                <div className="w-20 h-20 bg-[#c9a882] bg-opacity-20 rounded-2xl flex items-center justify-center">
-                  <Settings className="w-12 h-12 text-[#c9a882]" />
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#c9a882] bg-opacity-20 rounded-2xl flex items-center justify-center shadow-premium">
+                  <Settings className="w-8 h-8 sm:w-12 sm:h-12 text-[#c9a882]" />
                 </div>
               </div>
             </div>
@@ -212,26 +323,28 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="approvals">Approvals {user.role === 'manager' && '(Manager)'}</TabsTrigger>
-            <TabsTrigger value="talent">Talent Pool</TabsTrigger>
-            <TabsTrigger value="requests">Requests</TabsTrigger>
-            <TabsTrigger value="vetting">Vetting</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsList className="mb-4 sm:mb-6 flex-wrap gap-2">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="services" className="text-xs sm:text-sm">Services</TabsTrigger>
+            <TabsTrigger value="approvals" className="text-xs sm:text-sm">
+              Approvals {user.role === 'manager' && '(Manager)'}
+            </TabsTrigger>
+            <TabsTrigger value="talent" className="text-xs sm:text-sm">Talent Pool</TabsTrigger>
+            <TabsTrigger value="requests" className="text-xs sm:text-sm">Requests</TabsTrigger>
+            <TabsTrigger value="vetting" className="text-xs sm:text-sm">Vetting</TabsTrigger>
+            <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview">
-            <Card className="border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-[#755f52] to-[#8b7263] text-white">
-                <CardTitle className="flex items-center gap-2">
+            <Card className="border-0 shadow-premium card-premium">
+              <CardHeader className="gradient-premium text-white">
+                <CardTitle className="flex items-center gap-2 tracking-tight">
                   <FileText className="w-5 h-5" />
                   All Requests
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-5 md:p-6">
                 {loading ? (
                   <div className="flex justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B0DD16]"></div>
@@ -247,16 +360,16 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                 ) : (
                   <div className="space-y-4">
                     {requests.map((request) => (
-                      <div key={request.id} className="border-2 border-gray-200 rounded-xl p-5 hover:shadow-xl hover:border-[#B0DD16] transition-all duration-300 bg-white">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-bold text-lg text-[#755f52]">{request.eventName}</h3>
+                      <div key={request.id} className="card-premium border-2 border-gray-200 rounded-xl p-3 sm:p-4 md:p-5 hover:border-[#B0DD16] transition-all duration-300 bg-white">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-0 mb-3">
+                          <div className="flex-1 w-full sm:w-auto">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                              <h3 className="font-bold text-base sm:text-lg text-[#755f52] break-words">{request.eventName}</h3>
                               <Badge className={getStatusColor(request.status)}>
                                 {formatStatus(request.status)}
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-600 font-medium">
+                            <p className="text-xs sm:text-sm text-gray-600 font-medium">
                               {new Date(request.eventDate).toLocaleDateString()} • {request.parish}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
@@ -264,12 +377,12 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                             </p>
                           </div>
                           
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-2 w-full sm:w-auto">
                             <Select 
                               value={request.status}
                               onValueChange={(value) => updateRequestStatus(request.id, value)}
                             >
-                              <SelectTrigger className="w-48 border-2 border-gray-200 focus:border-[#B0DD16]">
+                              <SelectTrigger className="w-full sm:w-48 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl min-h-[44px] sm:h-10">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -285,34 +398,35 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                           </div>
                         </div>
 
-                        <div className="flex gap-2 mb-3">
+                        <div className="flex flex-wrap gap-2 mb-3">
                           {request.services?.photo && (
-                            <span className="text-xs bg-[#755f52] bg-opacity-10 text-[#755f52] px-3 py-1.5 rounded-full font-semibold">Photography</span>
+                            <span className="text-xs bg-[#755f52] bg-opacity-10 text-[#755f52] px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-semibold whitespace-nowrap">Photography</span>
                           )}
                           {request.services?.video && (
-                            <span className="text-xs bg-[#c9a882] bg-opacity-20 text-[#755f52] px-3 py-1.5 rounded-full font-semibold">Videography</span>
+                            <span className="text-xs bg-[#c9a882] bg-opacity-20 text-[#755f52] px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-semibold whitespace-nowrap">Videography</span>
                           )}
                           {request.services?.audio && (
-                            <span className="text-xs bg-[#B0DD16] bg-opacity-20 text-[#B0DD16] px-3 py-1.5 rounded-full font-semibold">Audio</span>
+                            <span className="text-xs bg-[#B0DD16] bg-opacity-20 text-[#B0DD16] px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-semibold whitespace-nowrap">Audio</span>
                           )}
                         </div>
 
                         {request.notes && (
-                          <p className="text-sm text-gray-700 mt-3 bg-[#f5f1eb] p-3 rounded-lg border-l-4 border-[#B0DD16]">
+                          <p className="text-xs sm:text-sm text-gray-700 mt-3 bg-[#f5f1eb] p-2 sm:p-3 rounded-lg border-l-4 border-[#B0DD16]">
                             <span className="font-bold text-[#755f52]">Notes:</span> {request.notes}
                           </p>
                         )}
 
-                        <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
-                          <span>Created: {new Date(request.createdAt).toLocaleString()}</span>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
+                          <span className="whitespace-nowrap">Created: {new Date(request.createdAt).toLocaleString()}</span>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setSelectedRequest(request)}
-                            className="text-[#B0DD16] hover:text-[#9ac514] hover:bg-[#B0DD16]/10"
+                            className="min-h-[44px] sm:h-8 text-[#B0DD16] hover:text-[#9ac514] hover:bg-[#B0DD16]/10 w-full sm:w-auto whitespace-nowrap"
                           >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details & Activity Log
+                            <Eye className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">View Details & Activity Log</span>
+                            <span className="sm:hidden">View Details</span>
                           </Button>
                         </div>
                       </div>
@@ -350,14 +464,14 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
 
           {/* Requests Tab */}
           <TabsContent value="requests">
-            <Card className="border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-[#755f52] to-[#8b7263] text-white">
-                <CardTitle className="flex items-center gap-2">
+            <Card className="border-0 shadow-premium card-premium">
+              <CardHeader className="gradient-premium text-white">
+                <CardTitle className="flex items-center gap-2 tracking-tight">
                   <Briefcase className="w-5 h-5" />
                   All Client Requests
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-5 md:p-6">
                 {loading ? (
                   <div className="flex justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B0DD16]"></div>
@@ -373,16 +487,16 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                 ) : (
                   <div className="space-y-4">
                     {requests.map((request) => (
-                      <div key={request.id} className="border-2 border-gray-200 rounded-xl p-5 hover:shadow-xl hover:border-[#B0DD16] transition-all duration-300 bg-white">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-bold text-lg text-[#755f52]">{request.eventName}</h3>
+                      <div key={request.id} className="card-premium border-2 border-gray-200 rounded-xl p-3 sm:p-4 md:p-5 hover:border-[#B0DD16] transition-all duration-300 bg-white">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-0 mb-3">
+                          <div className="flex-1 w-full sm:w-auto">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                              <h3 className="font-bold text-base sm:text-lg text-[#755f52] break-words">{request.eventName}</h3>
                               <Badge className={getStatusColor(request.status)}>
                                 {formatStatus(request.status)}
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-600 font-medium">
+                            <p className="text-xs sm:text-sm text-gray-600 font-medium">
                               {new Date(request.eventDate).toLocaleDateString()} • {request.parish}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
@@ -390,12 +504,12 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                             </p>
                           </div>
                           
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-2 w-full sm:w-auto">
                             <Select 
                               value={request.status}
                               onValueChange={(value) => updateRequestStatus(request.id, value)}
                             >
-                              <SelectTrigger className="w-48 border-2 border-gray-200 focus:border-[#B0DD16]">
+                              <SelectTrigger className="w-full sm:w-48 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl min-h-[44px] sm:h-10">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -411,34 +525,35 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                           </div>
                         </div>
 
-                        <div className="flex gap-2 mb-3">
+                        <div className="flex flex-wrap gap-2 mb-3">
                           {request.services?.photo && (
-                            <span className="text-xs bg-[#755f52] bg-opacity-10 text-[#755f52] px-3 py-1.5 rounded-full font-semibold">Photography</span>
+                            <span className="text-xs bg-[#755f52] bg-opacity-10 text-[#755f52] px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-semibold whitespace-nowrap">Photography</span>
                           )}
                           {request.services?.video && (
-                            <span className="text-xs bg-[#c9a882] bg-opacity-20 text-[#755f52] px-3 py-1.5 rounded-full font-semibold">Videography</span>
+                            <span className="text-xs bg-[#c9a882] bg-opacity-20 text-[#755f52] px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-semibold whitespace-nowrap">Videography</span>
                           )}
                           {request.services?.audio && (
-                            <span className="text-xs bg-[#B0DD16] bg-opacity-20 text-[#B0DD16] px-3 py-1.5 rounded-full font-semibold">Audio</span>
+                            <span className="text-xs bg-[#B0DD16] bg-opacity-20 text-[#B0DD16] px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-semibold whitespace-nowrap">Audio</span>
                           )}
                         </div>
 
                         {request.notes && (
-                          <p className="text-sm text-gray-700 mt-3 bg-[#f5f1eb] p-3 rounded-lg border-l-4 border-[#B0DD16]">
+                          <p className="text-xs sm:text-sm text-gray-700 mt-3 bg-[#f5f1eb] p-2 sm:p-3 rounded-lg border-l-4 border-[#B0DD16]">
                             <span className="font-bold text-[#755f52]">Notes:</span> {request.notes}
                           </p>
                         )}
 
-                        <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
-                          <span>Created: {new Date(request.createdAt).toLocaleString()}</span>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
+                          <span className="whitespace-nowrap">Created: {new Date(request.createdAt).toLocaleString()}</span>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setSelectedRequest(request)}
-                            className="text-[#B0DD16] hover:text-[#9ac514] hover:bg-[#B0DD16]/10"
+                            className="min-h-[44px] sm:h-8 text-[#B0DD16] hover:text-[#9ac514] hover:bg-[#B0DD16]/10 w-full sm:w-auto whitespace-nowrap"
                           >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details & Activity Log
+                            <Eye className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">View Details & Activity Log</span>
+                            <span className="sm:hidden">View Details</span>
                           </Button>
                         </div>
                       </div>
@@ -451,14 +566,14 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
 
           {/* Pending Talent Tab */}
           <TabsContent value="vetting">
-            <Card className="border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-[#755f52] to-[#8b7263] text-white">
-                <CardTitle className="flex items-center gap-2">
+            <Card className="border-0 shadow-premium card-premium">
+              <CardHeader className="gradient-premium text-white">
+                <CardTitle className="flex items-center gap-2 tracking-tight">
                   <UserPlus className="w-5 h-5" />
                   Talent Applications Pending Review
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-5 md:p-6">
                 {pendingTalents.length === 0 ? (
                   <div className="text-center py-16 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl">
                     <div className="w-20 h-20 bg-[#755f52] bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -470,11 +585,11 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                 ) : (
                   <div className="space-y-6">
                     {pendingTalents.map((talent) => (
-                      <div key={talent.id} className="border-2 border-gray-200 rounded-xl p-6 bg-white hover:shadow-xl hover:border-[#B0DD16] transition-all duration-300">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="font-bold text-xl text-[#755f52] mb-1">Application #{talent.userId}</h3>
-                            <p className="text-sm text-gray-500">
+                      <div key={talent.id} className="card-premium border-2 border-gray-200 rounded-xl p-3 sm:p-4 md:p-6 bg-white hover:border-[#B0DD16] transition-all duration-300 hover-lift">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start mb-3 sm:mb-4 gap-3">
+                          <div className="flex-1">
+                            <h3 className="font-bold text-lg sm:text-xl text-[#755f52] mb-1 tracking-tight">Application #{talent.userId}</h3>
+                            <p className="text-xs sm:text-sm text-gray-500">
                               Submitted: {new Date(talent.createdAt).toLocaleDateString()}
                             </p>
                           </div>
@@ -483,15 +598,15 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                           </Badge>
                         </div>
 
-                        <div className="space-y-4 bg-[#f5f1eb] bg-opacity-50 p-4 rounded-lg">
+                        <div className="space-y-3 sm:space-y-4 bg-[#f5f1eb] bg-opacity-50 p-3 sm:p-4 rounded-lg">
                           <div>
                             <h4 className="text-sm font-bold text-[#755f52] mb-2 flex items-center gap-2">
                               <Camera className="w-4 h-4" />
                               Services Offered
                             </h4>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               {talent.skills?.map((skill: string) => (
-                                <Badge key={skill} className="bg-[#B0DD16] text-white border-0">
+                                <Badge key={skill} className="gradient-premium-green text-white border-0 shadow-premium">
                                   {skill === 'photo' ? 'Photography' : skill === 'video' ? 'Videography' : 'Audio'}
                                 </Badge>
                               ))}
@@ -535,10 +650,10 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                                     href={link} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-sm text-[#B0DD16] hover:text-[#9ac514] hover:underline block font-medium flex items-center gap-2"
+                                    className="text-xs sm:text-sm text-[#B0DD16] hover:text-[#9ac514] hover:underline block font-medium flex items-center gap-2 break-all"
                                   >
-                                    <Award className="w-4 h-4" />
-                                    {link}
+                                    <Award className="w-4 h-4 flex-shrink-0" />
+                                    <span className="truncate">{link}</span>
                                   </a>
                                 ))}
                               </div>
@@ -546,11 +661,14 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                           )}
                         </div>
 
-                        <div className="flex gap-3 mt-6 pt-6 border-t-2 border-gray-200">
-                          <div className="flex-1">
-                            <Label className="text-sm font-bold text-[#755f52] mb-2 block">Tier (if approving)</Label>
-                            <Select defaultValue="certified">
-                              <SelectTrigger id={`tier-${talent.userId}`} className="border-2 border-gray-200 focus:border-[#B0DD16]">
+                        <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t-2 border-gray-200">
+                          <div className="flex-1 w-full sm:w-auto">
+                            <Label className="text-xs sm:text-sm font-bold text-[#755f52] mb-2 block">Tier (if approving)</Label>
+                            <Select 
+                              value={talentTiers[talent.userId] || 'certified'}
+                              onValueChange={(value) => setTalentTiers({ ...talentTiers, [talent.userId]: value })}
+                            >
+                              <SelectTrigger className="w-full sm:w-auto border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -560,25 +678,23 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="flex gap-3 items-end">
+                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-end w-full sm:w-auto">
                             <Button
-                              className="bg-[#B0DD16] hover:bg-[#9ac514] text-white shadow-lg"
-                              onClick={() => {
-                                const tierSelect = document.getElementById(`tier-${talent.userId}`) as any;
-                                const tier = tierSelect?.getAttribute('data-value') || 'certified';
-                                reviewTalent(talent.userId, 'approved', tier);
-                              }}
+                              className="button-glow flex-1 sm:flex-none min-h-[44px] sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
+                              onClick={() => reviewTalent(talent.userId, 'approved')}
                             >
-                              <CheckCircle2 className="w-4 h-4 mr-2" />
-                              Approve
+                              <CheckCircle2 className="w-4 h-4 sm:mr-2" />
+                              <span className="hidden sm:inline">Approve</span>
+                              <span className="sm:hidden">✓ Approve</span>
                             </Button>
                             <Button
                               variant="outline"
-                              className="border-2 border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+                              className="flex-1 sm:flex-none min-h-[44px] sm:h-10 border-2 border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-all whitespace-nowrap"
                               onClick={() => reviewTalent(talent.userId, 'rejected')}
                             >
-                              <XCircle className="w-4 h-4 mr-2" />
-                              Reject
+                              <XCircle className="w-4 h-4 sm:mr-2" />
+                              <span className="hidden sm:inline">Reject</span>
+                              <span className="sm:hidden">✗ Reject</span>
                             </Button>
                           </div>
                         </div>

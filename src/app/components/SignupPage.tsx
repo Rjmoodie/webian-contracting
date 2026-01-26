@@ -69,12 +69,12 @@ export default function SignupPage({ onSignup, onNavigate }: SignupPageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f1eb] via-[#ebe4d8] to-[#e8dfd1] flex items-center justify-center p-4 scroll-smooth">{/* Added scroll-smooth */}
       {/* Sticky minimal nav */}
-      <nav className="bg-[#755f52] backdrop-blur-sm bg-opacity-95 fixed top-0 left-0 right-0 z-50 shadow-lg border-b border-[#5a4a3f]">
+      <nav className="glass-dark fixed top-0 left-0 right-0 z-50 shadow-premium-lg border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">{/* Reduced from h-20 */}
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('home')}>
-              <div className="w-9 h-9 bg-[#c9a882] rounded-lg flex items-center justify-center">{/* Reduced from w-10 h-10 */}
-                <Camera className="w-5 h-5 text-[#755f52]" />{/* Reduced from w-6 h-6 */}
+              <div className="w-9 h-9 gradient-premium-gold rounded-xl flex items-center justify-center shadow-premium">
+                <Camera className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-white tracking-tight">{/* Reduced from text-xl */}
@@ -100,7 +100,7 @@ export default function SignupPage({ onSignup, onNavigate }: SignupPageProps) {
             </div>
           </div>
 
-          <Card className="border-0 shadow-2xl bg-white rounded-2xl overflow-hidden">
+          <Card className="border-0 shadow-premium-xl bg-white rounded-2xl overflow-hidden card-premium">
             <div className="p-8">
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-[#755f52] mb-2">Create Account</h2>
@@ -120,7 +120,8 @@ export default function SignupPage({ onSignup, onNavigate }: SignupPageProps) {
                       placeholder="John Doe"
                       value={formData.name}
                       onChange={(e) => updateFormData('name', e.target.value)}
-                      className="pl-11 h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      autoComplete="name"
                       required
                     />
                   </div>
@@ -138,7 +139,8 @@ export default function SignupPage({ onSignup, onNavigate }: SignupPageProps) {
                       placeholder="you@example.com"
                       value={formData.email}
                       onChange={(e) => updateFormData('email', e.target.value)}
-                      className="pl-11 h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -149,7 +151,7 @@ export default function SignupPage({ onSignup, onNavigate }: SignupPageProps) {
                     I want to...
                   </Label>
                   <Select value={formData.role} onValueChange={(value) => updateFormData('role', value)}>
-                    <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl">
+                    <SelectTrigger className="min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl">
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -182,7 +184,8 @@ export default function SignupPage({ onSignup, onNavigate }: SignupPageProps) {
                         placeholder="Your Company Name"
                         value={formData.company}
                         onChange={(e) => updateFormData('company', e.target.value)}
-                        className="pl-11 h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                        className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                        autoComplete="organization"
                       />
                     </div>
                   </div>
@@ -200,7 +203,8 @@ export default function SignupPage({ onSignup, onNavigate }: SignupPageProps) {
                       placeholder="Minimum 6 characters"
                       value={formData.password}
                       onChange={(e) => updateFormData('password', e.target.value)}
-                      className="pl-11 h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      autoComplete="new-password"
                       required
                     />
                   </div>
@@ -218,7 +222,8 @@ export default function SignupPage({ onSignup, onNavigate }: SignupPageProps) {
                       placeholder="Re-enter your password"
                       value={formData.confirmPassword}
                       onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-                      className="pl-11 h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      autoComplete="new-password"
                       required
                     />
                   </div>
@@ -226,7 +231,7 @@ export default function SignupPage({ onSignup, onNavigate }: SignupPageProps) {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-[#B0DD16] hover:bg-[#9ac514] text-white font-semibold text-base rounded-xl shadow-lg"
+                  className="button-glow w-full min-h-[48px] sm:h-12 gradient-premium-green text-white font-semibold text-sm sm:text-base rounded-xl shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
                   disabled={loading}
                 >
                   {loading ? (

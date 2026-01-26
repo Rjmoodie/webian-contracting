@@ -126,9 +126,9 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
 
   return (
     <div>
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-[#755f52] to-[#8b7263] text-white">
-          <CardTitle className="flex items-center gap-2">
+      <Card className="border-0 shadow-premium card-premium">
+        <CardHeader className="gradient-premium text-white">
+          <CardTitle className="flex items-center gap-2 tracking-tight">
             <Users className="w-5 h-5" />
             User Management
           </CardTitle>
@@ -142,11 +142,11 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
                 placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                className="pl-10 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
               />
             </div>
             <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger className="w-full md:w-48 h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl">
+              <SelectTrigger className="w-full md:w-48 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
@@ -186,12 +186,12 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
               {filteredUsers.map((user) => (
                 <div 
                   key={user.id} 
-                  className="border-2 border-gray-200 rounded-xl p-5 hover:shadow-xl hover:border-[#B0DD16] transition-all duration-300 bg-white"
+                  className="card-premium border-2 border-gray-200 rounded-xl p-4 sm:p-5 hover:border-[#B0DD16] transition-all duration-300 bg-white hover-lift"
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-lg text-[#755f52]">{user.name}</h3>
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <h3 className="font-bold text-base sm:text-lg text-[#755f52] tracking-tight">{user.name}</h3>
                         <Badge className={getRoleBadgeColor(user.role)}>
                           <div className="flex items-center gap-1">
                             {getRoleIcon(user.role)}
@@ -202,7 +202,7 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
                           <Badge className="bg-blue-100 text-blue-800">You</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 font-medium">{user.email}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 font-medium">{user.email}</p>
                       {user.company && (
                         <p className="text-xs text-gray-500 mt-1">Company: {user.company}</p>
                       )}
@@ -219,7 +219,7 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
                           value={user.role}
                           onValueChange={(newRole) => updateUserRole(user.id, newRole)}
                         >
-                          <SelectTrigger className="w-48 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl">
+                          <SelectTrigger className="w-full sm:w-48 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -273,27 +273,27 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
 
           {/* Summary Stats */}
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl">
-                <div className="text-2xl font-bold text-[#755f52]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl card-premium">
+                <div className="text-xl sm:text-2xl font-bold text-[#755f52] tracking-tight">
                   {users.filter(u => u.role === 'client').length}
                 </div>
                 <div className="text-xs text-gray-600 mt-1">Clients</div>
               </div>
-              <div className="text-center p-4 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl">
-                <div className="text-2xl font-bold text-[#755f52]">
+              <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl card-premium">
+                <div className="text-xl sm:text-2xl font-bold text-[#755f52] tracking-tight">
                   {users.filter(u => u.role === 'talent').length}
                 </div>
                 <div className="text-xs text-gray-600 mt-1">Talents</div>
               </div>
-              <div className="text-center p-4 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl">
-                <div className="text-2xl font-bold text-[#755f52]">
+              <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl card-premium">
+                <div className="text-xl sm:text-2xl font-bold text-[#755f52] tracking-tight">
                   {users.filter(u => u.role === 'manager').length}
                 </div>
                 <div className="text-xs text-gray-600 mt-1">Managers</div>
               </div>
-              <div className="text-center p-4 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl">
-                <div className="text-2xl font-bold text-[#755f52]">
+              <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl card-premium">
+                <div className="text-xl sm:text-2xl font-bold text-[#755f52] tracking-tight">
                   {users.filter(u => u.role === 'admin').length}
                 </div>
                 <div className="text-xs text-gray-600 mt-1">Admins</div>

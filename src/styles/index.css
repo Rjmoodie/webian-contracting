@@ -1,3 +1,298 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+/* Global Responsive Styles */
+* {
+  box-sizing: border-box;
+}
+
+/* Premium Typography Enhancements */
+body {
+  font-feature-settings: "kern" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+/* Premium Shadows */
+.shadow-premium {
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 10px 15px -3px rgba(0, 0, 0, 0.08),
+    0 20px 25px -5px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-premium-lg {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.08),
+    0 20px 25px -5px rgba(0, 0, 0, 0.06),
+    0 30px 40px -10px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-premium-xl {
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 30px 40px -10px rgba(0, 0, 0, 0.08),
+    0 50px 60px -15px rgba(0, 0, 0, 0.06);
+}
+
+/* Glassmorphism Effect */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(117, 95, 82, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Premium Gradients */
+.gradient-premium {
+  background: linear-gradient(135deg, #755f52 0%, #8b7263 50%, #755f52 100%);
+}
+
+.gradient-premium-green {
+  background: linear-gradient(135deg, #B0DD16 0%, #9ac514 50%, #B0DD16 100%);
+}
+
+.gradient-premium-gold {
+  background: linear-gradient(135deg, #c9a882 0%, #d4b896 50%, #c9a882 100%);
+}
+
+/* Smooth Transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* Premium Hover Effects */
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 30px 40px -10px rgba(0, 0, 0, 0.08);
+}
+
+/* Premium Button Glow */
+.button-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.button-glow:hover::before {
+  left: 100%;
+}
+
+/* Premium Card Styles */
+.card-premium {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(117, 95, 82, 0.08);
+}
+
+.card-premium:hover {
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 30px 40px -10px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  border-color: rgba(117, 95, 82, 0.15);
+}
+
+/* Premium Text Effects */
+.text-premium {
+  background: linear-gradient(135deg, #755f52 0%, #8b7263 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-premium-gold {
+  background: linear-gradient(135deg, #c9a882 0%, #d4b896 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Responsive Images */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive Tables */
+@media (max-width: 768px) {
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  thead {
+    display: none;
+  }
+  
+  tbody {
+    display: block;
+  }
+  
+  tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  td {
+    display: block;
+    text-align: right;
+    padding: 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  
+  td::before {
+    content: attr(data-label);
+    float: left;
+    font-weight: 600;
+    color: #6b7280;
+  }
+}
+
+/* Responsive Forms */
+input, textarea, select {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Touch-friendly buttons on mobile */
+@media (max-width: 768px) {
+  button, a[role="button"], [role="button"], .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Responsive borders - thinner on mobile for better visual balance */
+  .border-2,
+  [class*="border-2"] {
+    border-width: 1.5px !important;
+  }
+  
+  .border-4,
+  [class*="border-4"] {
+    border-width: 2px !important;
+  }
+  
+  .border-l-4,
+  [class*="border-l-4"] {
+    border-left-width: 2px !important;
+  }
+  
+  .border-t-2,
+  [class*="border-t-2"] {
+    border-top-width: 1.5px !important;
+  }
+  
+  .border-b-2,
+  [class*="border-b-2"] {
+    border-bottom-width: 1.5px !important;
+  }
+  
+  /* Responsive border radius - slightly smaller on mobile */
+  .rounded-xl {
+    border-radius: 0.75rem;
+  }
+  
+  .rounded-2xl {
+    border-radius: 1rem;
+  }
+  
+  .rounded-3xl {
+    border-radius: 1.25rem;
+  }
+}
+
+@media (min-width: 769px) {
+  /* Standard borders on desktop */
+  .border-2,
+  [class*="border-2"] {
+    border-width: 2px;
+  }
+  
+  .border-4,
+  [class*="border-4"] {
+    border-width: 4px;
+  }
+  
+  .border-l-4,
+  [class*="border-l-4"] {
+    border-left-width: 4px;
+  }
+  
+  .border-t-2,
+  [class*="border-t-2"] {
+    border-top-width: 2px;
+  }
+  
+  .border-b-2,
+  [class*="border-b-2"] {
+    border-bottom-width: 2px;
+  }
+}
+
+/* Prevent horizontal scroll */
+body {
+  overflow-x: hidden;
+}
+
+/* Responsive containers */
+.container {
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}

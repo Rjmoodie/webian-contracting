@@ -168,20 +168,25 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
   return (
     <div className="min-h-screen bg-[#f5f1eb]">
       {/* Header */}
-      <nav className="bg-white border-b border-[#755f5233]">
+      <nav className="glass bg-white border-b border-[#755f5233] shadow-premium">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-6">
-              <h1 className="text-2xl font-bold text-[#7fa589] cursor-pointer" onClick={() => onNavigate('home')}>
+              <h1 className="text-2xl font-bold text-[#7fa589] cursor-pointer tracking-tight" onClick={() => onNavigate('home')}>
                 EventCoverageJamaica
               </h1>
-              <span className="text-gray-600">Talent Portal</span>
+              <span className="text-gray-600 hidden sm:inline">Talent Portal</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-700">Hi, {user.name}</span>
-              <Button variant="ghost" size="sm" onClick={onLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-xs sm:text-sm text-gray-700 font-medium">Hi, {user.name}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onLogout}
+                className="text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb] text-xs sm:text-sm transition-all"
+              >
+                <LogOut className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Logout</span>
               </Button>
             </div>
           </div>
