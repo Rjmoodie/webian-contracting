@@ -3,7 +3,8 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { Plus, FileText, LogOut, Eye } from 'lucide-react';
+import { Plus, FileText, Eye } from 'lucide-react';
+import Navigation from '../Navigation';
 import CreateRequestWizard from './CreateRequestWizard';
 import RequestDetailsPage from '@/app/components/RequestDetailsPage';
 
@@ -97,43 +98,17 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
   return (
     <div className="min-h-screen bg-[#f5f1eb]">
       {/* Header */}
-      <nav className="glass bg-white border-b border-[#755f5233] shadow-premium">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center h-auto sm:h-16 py-3 sm:py-0 gap-3 sm:gap-0">
-            <div className="flex items-center gap-3 sm:gap-6">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[#B0DD16] cursor-pointer" onClick={() => onNavigate('home')}>
-                <span className="hidden sm:inline">EventCoverageJamaica</span>
-                <span className="sm:hidden">ECJ</span>
-              </h1>
-              <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">Client Portal</span>
-            </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-              <span className="text-xs sm:text-sm text-gray-700 font-medium whitespace-nowrap">Hi, {user.name}</span>
-              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1 sm:flex-none min-h-[44px] sm:h-8 text-xs sm:text-sm border-2 border-[#755f52] text-[#755f52] hover:bg-[#755f52] hover:text-white transition-all whitespace-nowrap" 
-                  onClick={() => onNavigate('services')}
-                >
-                  <span className="hidden sm:inline">Browse Services</span>
-                  <span className="sm:hidden">Services</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="flex-1 sm:flex-none min-h-[44px] sm:h-8 text-xs sm:text-sm text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb] transition-all whitespace-nowrap" 
-                  onClick={onLogout}
-                >
-                  <LogOut className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Logout</span>
-                  <span className="sm:hidden">Logout</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation
+        user={user}
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+        variant="dashboard"
+        portalLabel="Client Portal"
+        showBrowseServices={true}
+        showNavLinks={false}
+      />
+      {/* Spacer for fixed header */}
+      <div className="h-16 sm:h-16" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Card */}
@@ -148,7 +123,7 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
                 size="lg" 
                 variant="secondary"
                 onClick={() => setShowCreateWizard(true)}
-                className="flex items-center gap-2 w-full sm:w-auto"
+                className="flex items-center gap-2 w-full sm:w-auto !min-h-[48px]"
               >
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                 Create Request

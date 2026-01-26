@@ -1,4 +1,5 @@
-import { Camera, Shield, Clock, Award, CheckCircle, MapPin, Users, TrendingUp, Star, ChevronRight, Menu, X, Video, Music, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Camera, Shield, Clock, Award, CheckCircle, MapPin, Users, TrendingUp, Star, ChevronRight, Video, Music, ArrowRight, CheckCircle2 } from 'lucide-react';
+import Navigation from './Navigation';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Card, CardHeader, CardContent } from '@/app/components/ui/card';
@@ -19,190 +20,20 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
     'Manchester', 'Clarendon', 'St. Catherine'
   ];
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedParish, setSelectedParish] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f1eb] via-[#ebe4d8] to-[#e8dfd1] scroll-smooth">
       {/* Navigation */}
-      <nav className="glass-dark sticky top-0 z-50 shadow-premium-lg border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4 sm:gap-8">
-              <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => onNavigate('home')}>
-                <div className="w-8 h-8 sm:w-9 sm:h-9 gradient-premium-gold rounded-xl flex items-center justify-center shadow-premium hover:scale-105 transition-transform">
-                  <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                    <span className="hidden sm:inline">EventCoverageJamaica</span>
-                    <span className="sm:hidden">ECJ</span>
-                  </h1>
-                  <p className="text-[9px] sm:text-[10px] text-[#c9a882] hidden sm:block">Professional Event Services</p>
-                </div>
-              </div>
-              <div className="hidden md:flex gap-6">
-                <button
-                  onClick={() => onNavigate('services')}
-                  className="text-white hover:text-[#c9a882] font-medium transition"
-                >
-                  Services
-                </button>
-                <button
-                  onClick={() => {/* scroll to how it works */}}
-                  className="text-white hover:text-[#c9a882] font-medium transition"
-                >
-                  How It Works
-                </button>
-                <button
-                  onClick={() => {/* scroll to coverage */}}
-                  className="text-white hover:text-[#c9a882] font-medium transition"
-                >
-                  Coverage
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden text-white p-2 hover:bg-[#8b7263] rounded-lg transition"
-                aria-label="Toggle menu"
-              >
-                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-              
-              {/* Desktop Auth Buttons */}
-              <div className="hidden md:flex items-center gap-3">
-                {user ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      className="text-white hover:text-[#c9a882] hover:bg-[#8b7263] text-sm"
-                      onClick={() => {
-                        if (user.role === 'client') onNavigate('client-dashboard');
-                        else if (user.role === 'talent') onNavigate('talent-dashboard');
-                        else if (user.role === 'admin' || user.role === 'manager') onNavigate('admin-dashboard');
-                      }}
-                    >
-                      Dashboard
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-[#c9a882] text-[#c9a882] hover:bg-[#c9a882] hover:text-[#755f52]"
-                      onClick={onLogout}
-                    >
-                      Logout
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="text-white hover:text-[#c9a882] hover:bg-[#8b7263]"
-                      onClick={() => onNavigate('login')}
-                    >
-                      Login
-                    </Button>
-                    <Button 
-                      size="sm"
-                      className="bg-[#B0DD16] hover:bg-[#9ac514] text-white font-semibold"
-                      onClick={() => onNavigate('signup')}
-                    >
-                      Get Started
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="md:hidden border-t border-[#5a4a3f] py-4">
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => {
-                    onNavigate('services');
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-left text-white hover:text-[#c9a882] font-medium transition px-2 py-2"
-                >
-                  Services
-                </button>
-                <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-left text-white hover:text-[#c9a882] font-medium transition px-2 py-2"
-                >
-                  How It Works
-                </button>
-                <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-left text-white hover:text-[#c9a882] font-medium transition px-2 py-2"
-                >
-                  Coverage
-                </button>
-                <div className="border-t border-[#5a4a3f] pt-3 mt-2">
-                  {user ? (
-                    <>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-white hover:text-[#c9a882] hover:bg-[#8b7263] mb-2"
-                        onClick={() => {
-                          if (user.role === 'client') onNavigate('client-dashboard');
-                          else if (user.role === 'talent') onNavigate('talent-dashboard');
-                          else if (user.role === 'admin' || user.role === 'manager') onNavigate('admin-dashboard');
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        Dashboard
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="w-full border-[#c9a882] text-[#c9a882] hover:bg-[#c9a882] hover:text-[#755f52]"
-                        onClick={() => {
-                          onLogout();
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        Logout
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start text-white hover:text-[#c9a882] hover:bg-[#8b7263] mb-2"
-                        onClick={() => {
-                          onNavigate('login');
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        Login
-                      </Button>
-                      <Button 
-                        className="w-full bg-[#B0DD16] hover:bg-[#9ac514] text-white font-semibold"
-                        onClick={() => {
-                          onNavigate('signup');
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        Get Started
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </nav>
+      <Navigation
+        user={user}
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+        variant="public"
+        showNavLinks={true}
+      />
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">

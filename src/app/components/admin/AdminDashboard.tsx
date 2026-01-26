@@ -260,41 +260,17 @@ export default function AdminDashboard({ user, serverUrl, accessToken, onLogout,
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f1eb] via-[#ebe4d8] to-[#e8dfd1]">
       {/* Header */}
-      <nav className="glass bg-white border-b border-gray-200 shadow-premium">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center h-auto sm:h-16 py-3 sm:py-0 gap-3 sm:gap-0">
-            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-              <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => onNavigate('home')}>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 gradient-premium rounded-xl flex items-center justify-center shadow-premium hover:scale-105 transition-transform">
-                  <Camera className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-base sm:text-xl font-bold text-[#755f52] tracking-tight">
-                    <span className="hidden sm:inline">EventCoverageJamaica</span>
-                    <span className="sm:hidden">ECJ</span>
-                  </h1>
-                </div>
-              </div>
-              <Badge className="gradient-premium text-white border-0 shadow-premium text-xs sm:text-sm whitespace-nowrap">
-                {user.role === 'admin' ? 'Admin' : 'Manager'} Portal
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-              <span className="text-xs sm:text-sm font-medium text-[#755f52] whitespace-nowrap">Hi, {user.name}</span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={onLogout}
-                className="min-h-[44px] sm:h-8 text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb] text-xs sm:text-sm whitespace-nowrap ml-auto sm:ml-0"
-              >
-                <LogOut className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-                <span className="sm:hidden">Logout</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation
+        user={user}
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+        variant="dashboard"
+        portalLabel={`${user.role === 'admin' ? 'Admin' : 'Manager'} Portal`}
+        showBrowseServices={false}
+        showNavLinks={false}
+      />
+      {/* Spacer for fixed header */}
+      <div className="h-16 sm:h-16" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Card */}

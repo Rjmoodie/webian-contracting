@@ -3,6 +3,7 @@ import { MapPin, Building2, Users, Clock, CheckCircle2, ArrowLeft, Camera } from
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
+import Navigation from './Navigation';
 import JamaicaMap from '@/app/components/JamaicaMap';
 import JamaicaLeafletMap from '@/app/components/JamaicaLeafletMap';
 import jamaicaMap from 'figma:asset/7f8950c56c52dca925d40dbb81dc5bffa4ea6cb0.png';
@@ -99,39 +100,15 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
   return (
     <div className="min-h-screen bg-[#f5f1eb]">
       {/* Header */}
-      <nav className="bg-white border-b border-[#755f5233]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-6">
-              <h1 
-                className="text-2xl font-bold text-[#B0DD16] cursor-pointer" 
-                onClick={() => onNavigate('home')}
-              >
-                EventCoverageJamaica
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <span className="text-sm text-gray-700">Hi, {user.name}</span>
-                  <Button variant="outline" size="sm" onClick={onLogout}>
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => onNavigate('login')}>
-                    Login
-                  </Button>
-                  <Button size="sm" className="bg-[#B0DD16] hover:bg-[#9ac514]" onClick={() => onNavigate('signup')}>
-                    Sign Up
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation
+        user={user}
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+        variant="public"
+        showNavLinks={false}
+      />
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
 
       {/* Hero Section */}
       <section className="relative py-20 px-4 overflow-hidden bg-gradient-to-r from-[#755f52] to-[#8b7263]">

@@ -1,6 +1,7 @@
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { ArrowLeft, Shield, Award, MapPin, Camera, Users, CheckCircle2, Target, Heart } from 'lucide-react';
+import Navigation from './Navigation';
 
 interface AboutPageProps {
   onNavigate: (page: string) => void;
@@ -12,39 +13,15 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
   return (
     <div className="min-h-screen bg-[#f5f1eb]">
       {/* Header */}
-      <nav className="glass bg-white border-b border-[#755f5233] shadow-premium">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-6">
-              <h1 
-                className="text-2xl font-bold text-[#B0DD16] cursor-pointer tracking-tight" 
-                onClick={() => onNavigate('home')}
-              >
-                EventCoverageJamaica
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <span className="text-sm text-gray-700">Hi, {user.name}</span>
-                  <Button variant="outline" size="sm" onClick={onLogout}>
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => onNavigate('login')}>
-                    Login
-                  </Button>
-                  <Button size="sm" className="button-glow gradient-premium-green shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all" onClick={() => onNavigate('signup')}>
-                    Sign Up
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation
+        user={user}
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+        variant="public"
+        showNavLinks={false}
+      />
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
 
       {/* Hero Section */}
       <section className="relative py-20 px-4 overflow-hidden bg-gradient-to-r from-[#755f52] to-[#8b7263]">

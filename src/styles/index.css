@@ -2,11 +2,6 @@
 @import './tailwind.css';
 @import './theme.css';
 
-/* Global Responsive Styles */
-* {
-  box-sizing: border-box;
-}
-
 /* Premium Typography Enhancements */
 body {
   font-feature-settings: "kern" 1, "liga" 1;
@@ -20,41 +15,42 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
 }
 
-/* Premium Shadows */
+/* Premium Shadows - Using CSS Variables */
 .shadow-premium {
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 10px 15px -3px rgba(0, 0, 0, 0.08),
-    0 20px 25px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm), var(--shadow-md);
 }
 
 .shadow-premium-lg {
-  box-shadow: 
-    0 10px 15px -3px rgba(0, 0, 0, 0.08),
-    0 20px 25px -5px rgba(0, 0, 0, 0.06),
-    0 30px 40px -10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md), var(--shadow-lg);
 }
 
 .shadow-premium-xl {
-  box-shadow: 
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 30px 40px -10px rgba(0, 0, 0, 0.08),
-    0 50px 60px -15px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-lg), var(--shadow-xl);
 }
 
-/* Glassmorphism Effect */
+/* Glassmorphism Effect - Improved Contrast */
 .glass {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.dark .glass {
+  background: rgba(20, 20, 20, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .glass-dark {
-  background: rgba(117, 95, 82, 0.85);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(117, 95, 82, 0.75);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dark .glass-dark {
+  background: rgba(30, 25, 20, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Premium Gradients */
@@ -70,9 +66,9 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(135deg, #c9a882 0%, #d4b896 50%, #c9a882 100%);
 }
 
-/* Smooth Transitions */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+/* Intentional Transitions - Applied via class, not universal */
+.transition-default {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
 }
@@ -114,17 +110,13 @@ h1, h2, h3, h4, h5, h6 {
 .card-premium {
   background: white;
   border-radius: 1rem;
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 10px 15px -3px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm), var(--shadow-md);
+  transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(117, 95, 82, 0.08);
 }
 
 .card-premium:hover {
-  box-shadow: 
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 30px 40px -10px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-lg), var(--shadow-xl);
   transform: translateY(-2px);
   border-color: rgba(117, 95, 82, 0.15);
 }
@@ -196,9 +188,34 @@ input, textarea, select {
   max-width: 100%;
 }
 
-/* Touch-friendly buttons on mobile */
+/* Header buttons - Force 32px height, override Button component min-height */
+/* Target all buttons in fixed navigation headers */
+nav[class*="fixed"] [data-slot="button"],
+nav[class*="fixed"] button {
+  max-height: 64px;
+}
+
+/* Specifically override buttons with !h-8 class in fixed nav */
+nav[class*="fixed"] [data-slot="button"][class*="!h-8"],
+nav[class*="fixed"] button[class*="!h-8"] {
+  height: 32px !important;
+  min-height: 0 !important;
+  max-height: 32px !important;
+  line-height: 1.2 !important;
+}
+
+/* Override Button component's min-height for header buttons */
+nav[class*="fixed"] [data-slot="button"][class*="!min-h-0"],
+nav[class*="fixed"] button[class*="!min-h-0"] {
+  min-height: 0 !important;
+}
+
+/* Touch-friendly buttons on mobile - Exclude header buttons */
 @media (max-width: 768px) {
-  button, a[role="button"], [role="button"], .btn {
+  button:not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]):not([class*="!h-8"]), 
+  a[role="button"]:not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]):not([class*="!h-8"]), 
+  [role="button"]:not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]):not([class*="!h-8"]), 
+  .btn:not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]):not([class*="!h-8"]) {
     min-height: 44px;
     min-width: 44px;
   }

@@ -1,0 +1,38 @@
+/* fonts.css - Modern Variable Fonts */
+
+/* 
+ * Fonts are loaded via Google Fonts link tag in index.html
+ * For production, consider self-hosting for better performance:
+ * - Inter: https://rsms.me/inter/ (download Inter-Variable.woff2)
+ * - Playfair Display: https://fonts.google.com/specimen/Playfair+Display
+ * 
+ * To self-host, uncomment the @font-face rules below and place fonts in /public/fonts/
+ */
+
+/* Self-hosted Inter – variable font for UI / body text (uncomment when self-hosting) */
+/*
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/Inter-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
+/* Self-hosted Playfair Display – variable font for headings (uncomment when self-hosting) */
+/*
+@font-face {
+  font-family: "Playfair Display";
+  src: url("/fonts/PlayfairDisplay-Variable.woff2") format("woff2");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
+/* Font family variables */
+:root {
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+}
