@@ -86,39 +86,39 @@ export default function ServicesPage({ serverUrl, onNavigate, user, publicAnonKe
         showNavLinks={true}
       />
       {/* Spacer for fixed header */}
-      <div className="h-16" />
+      <div className="h-24" />
 
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-[#755f52] to-[#8b7263] text-white py-16 overflow-hidden">{/* Reduced from py-20 */}
         {/* Decorative Background */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-[#B0DD16] rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#B0DD16] rounded-full blur-3xl"></div>
+          <div className="absolute top-10 left-10 w-72 h-72 bg-[#BDFF1C] rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#BDFF1C] rounded-full blur-3xl"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 text-center">
           <div className="text-center max-w-4xl mx-auto">
-            <Badge className="bg-[#B0DD16] text-white mb-4 text-xs sm:text-sm px-3 sm:px-4 py-1.5 font-semibold">
-              Jamaica's Premier Event Coverage Platform
+            <Badge className="bg-[#BDFF1C] text-white mb-4 text-xs sm:text-sm px-3 sm:px-4 py-1.5 font-semibold">
+              Professional Event Coverage Platform
             </Badge>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 leading-tight">
               Professional Event Coverage,<br />
-              <span className="text-[#B0DD16]">Delivered with Excellence</span>
+              <span className="text-[#BDFF1C]">Delivered with Excellence</span>
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-[#e8dfd1] mb-6 leading-relaxed max-w-3xl mx-auto">
-              ECJ-vetted professionals. Islandwide coverage. Guaranteed quality.
+              ECJ-vetted professionals. Islandwide coverage. Quality service.
             </p>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-6">
               <div className="flex items-center gap-2 bg-white bg-opacity-10 backdrop-blur-sm px-4 py-2 rounded-lg">
-                <Award className="w-5 h-5 text-[#B0DD16]" />
-                <span className="text-sm font-medium">100% Verified</span>
+                <Award className="w-5 h-5 text-[#BDFF1C]" />
+                <span className="text-sm font-medium">Verified Professionals</span>
               </div>
               <div className="flex items-center gap-2 bg-white bg-opacity-10 backdrop-blur-sm px-4 py-2 rounded-lg">
-                <MapPin className="w-5 h-5 text-[#B0DD16]" />
+                <MapPin className="w-5 h-5 text-[#BDFF1C]" />
                 <span className="text-sm font-medium">All 14 Parishes</span>
               </div>
               <div className="flex items-center gap-2 bg-white bg-opacity-10 backdrop-blur-sm px-4 py-2 rounded-lg">
-                <Star className="w-5 h-5 text-[#B0DD16] fill-current" />
+                <Star className="w-5 h-5 text-[#BDFF1C] fill-current" />
                 <span className="text-sm font-medium">5-Star Service</span>
               </div>
             </div>
@@ -249,7 +249,7 @@ export default function ServicesPage({ serverUrl, onNavigate, user, publicAnonKe
 
                   {/* Description */}
                   <p className="text-sm sm:text-base text-gray-700 leading-relaxed line-clamp-3">
-                    {service.description || 'Professional event coverage service delivered by ECJ-vetted talent with guaranteed quality and on-time delivery.'}
+                    {service.description || 'Professional event coverage service delivered by ECJ-vetted talent with quality service and reliable delivery.'}
                   </p>
 
                   {/* Trust Metrics */}
@@ -370,7 +370,7 @@ export default function ServicesPage({ serverUrl, onNavigate, user, publicAnonKe
                 </div>
                 <h4 className="font-bold text-white text-base mb-2">Pro Equipment</h4>
                 <p className="text-[#e8dfd1] text-sm leading-relaxed">
-                  Broadcast-grade cameras, lenses, and audio gear
+                  Professional-grade cameras, lenses, and audio gear
                 </p>
               </div>
               
@@ -390,7 +390,7 @@ export default function ServicesPage({ serverUrl, onNavigate, user, publicAnonKe
                 </div>
                 <h4 className="font-bold text-white text-base mb-2">On-Time Delivery</h4>
                 <p className="text-[#e8dfd1] text-sm leading-relaxed">
-                  Guaranteed turnaround times with quality assurance
+                  Reliable turnaround times with quality assurance
                 </p>
               </div>
             </div>
@@ -399,21 +399,21 @@ export default function ServicesPage({ serverUrl, onNavigate, user, publicAnonKe
 
         {/* CTA Section */}
         {!user && (
-          <div className="mt-12 text-center bg-white rounded-3xl p-10 shadow-premium card-premium">{/* Reduced from mt-16 and p-12 */}
+          <div className="mt-12 text-center bg-white rounded-3xl p-4 sm:p-6 md:p-10 shadow-premium card-premium">{/* Reduced from mt-16 and p-12 */}
             <h3 className="text-2xl font-bold text-[#755f52] mb-3">Ready to Get Started?</h3>{/* Reduced from text-3xl and mb-4 */}
-            <p className="text-gray-600 mb-6 text-base max-w-2xl mx-auto">{/* Reduced from mb-8 and text-lg */}
+            <p className="text-gray-600 mb-6 text-base max-w-2xl mx-auto px-2">{/* Reduced from mb-8 and text-lg */}
               Join EventCoverageJamaica today and experience professional event coverage backed by our quality guarantee.
             </p>
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 px-2">
               <Button 
-                className="button-glow gradient-premium text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
+                className="button-glow gradient-premium text-white px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-xl shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto min-h-[48px] sm:min-h-0 sm:h-10 whitespace-nowrap"
                 onClick={() => onNavigate('signup')}
               >
                 Create Free Account
               </Button>
               <Button 
                 variant="outline"
-                className="border-2 border-[#755f52] text-[#755f52] hover:bg-[#755f5210] px-8 py-6 text-lg font-semibold rounded-xl"
+                className="border-2 border-[#755f52] text-[#755f52] hover:bg-[#755f5210] px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-xl w-full sm:w-auto min-h-[48px] sm:min-h-0 sm:h-10 whitespace-nowrap"
                 onClick={() => onNavigate('services')}
               >
                 Browse Services

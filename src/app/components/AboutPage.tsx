@@ -21,7 +21,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
         showNavLinks={false}
       />
       {/* Spacer for fixed header */}
-      <div className="h-16" />
+      <div className="h-24" />
 
       {/* Hero Section */}
       <section className="relative py-20 px-4 overflow-hidden bg-gradient-to-r from-[#755f52] to-[#8b7263]">
@@ -30,39 +30,39 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
         </div>
         
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
+        <div className="relative z-10 max-w-4xl mx-auto text-center px-4">
           <Button 
             variant="ghost" 
-            className="text-white hover:text-[#c9a882] mb-6"
+            className="text-white hover:text-[#c9a882] mb-4 sm:mb-6"
             onClick={() => onNavigate('home')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
             About EventCoverageJamaica
           </h1>
-          <p className="text-xl text-[#e8dfd1] leading-relaxed">
-            Jamaica's premier managed marketplace for professional event coverage
+          <p className="text-base sm:text-lg md:text-xl text-[#e8dfd1] leading-relaxed">
+            A managed marketplace for professional event coverage across Jamaica
           </p>
         </div>
       </section>
 
       {/* Main Content */}
-      <section className="py-16 px-4">
+      <section className="py-8 sm:py-12 md:py-16 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Our Story */}
-          <Card className="mb-8 border-0 shadow-premium card-premium">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center">
-                  <Heart className="w-6 h-6 text-white" />
+          <Card className="mb-6 sm:mb-8 border-0 shadow-premium card-premium">
+            <CardContent className="p-4 sm:p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#BDFF1C] rounded-xl flex items-center justify-center">
+                  <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <h2 className="text-3xl font-bold text-[#755f52]">Our Story</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#755f52]">Our Story</h2>
               </div>
-              <div className="space-y-4 text-gray-700 leading-relaxed">
-                <p className="text-lg">
-                  EventCoverageJamaica was founded on a simple but powerful mission: to make professional event coverage accessible, reliable, and guaranteed across every parish in Jamaica.
+              <div className="space-y-3 sm:space-y-4 text-sm sm:text-base text-gray-700 leading-relaxed">
+                <p className="text-base sm:text-lg">
+                  EventCoverageJamaica was founded on a simple but powerful mission: to make professional event coverage accessible and reliable across parishes in Jamaica.
                 </p>
                 <p>
                   We recognized that finding trustworthy, vetted event coverage professionals was a challenge for event organizers, businesses, and families alike. Too often, clients had to rely on word-of-mouth recommendations, scroll through countless portfolios, or take risks with unknown providers.
@@ -75,33 +75,33 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
           </Card>
 
           {/* Our Mission */}
-          <Card className="mb-8 border-0 shadow-premium card-premium">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-[#755f52] rounded-xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-[#c9a882]" />
+          <Card className="mb-6 sm:mb-8 border-0 shadow-premium card-premium">
+            <CardContent className="p-4 sm:p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#755f52] rounded-xl flex items-center justify-center">
+                  <Target className="w-5 h-5 sm:w-6 sm:h-6 text-[#c9a882]" />
                 </div>
-                <h2 className="text-3xl font-bold text-[#755f52]">Our Mission</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#755f52]">Our Mission</h2>
               </div>
-              <p className="text-lg text-gray-700 leading-relaxed">
-                To provide guaranteed, ECJ-branded event coverage services across all 14 parishes of Jamaica, backed by our rigorous vetting process, quality assurance, and unwavering commitment to excellence.
+              <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
+                To provide ECJ-branded event coverage services across parishes in Jamaica, backed by our vetting process, quality assurance, and commitment to quality service.
               </p>
             </CardContent>
           </Card>
 
           {/* What Makes Us Different */}
-          <Card className="mb-8 border-0 shadow-premium card-premium">
-            <CardContent className="p-8">
-              <h2 className="text-3xl font-bold text-[#755f52] mb-6">What Makes Us Different</h2>
-              <div className="grid md:grid-cols-2 gap-6">
+          <Card className="mb-6 sm:mb-8 border-0 shadow-premium card-premium">
+            <CardContent className="p-4 sm:p-6 md:p-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#755f52] mb-4 sm:mb-6">What Makes Us Different</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-[#BDFF1C] rounded-xl flex items-center justify-center flex-shrink-0">
                     <Shield className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-[#755f52] mb-2">ECJ Brand Guarantee</h3>
+                    <h3 className="font-bold text-lg text-[#755f52] mb-2">ECJ Brand Commitment</h3>
                     <p className="text-gray-600">
-                      We don't just connect you with talent. Every service is ECJ-branded and backed by our quality guarantee. If something goes wrong, we make it right.
+                      We don't just connect you with talent. Every service is ECJ-branded and backed by our commitment to quality. We work to address any concerns that may arise.
                     </p>
                   </div>
                 </div>
@@ -111,15 +111,15 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
                     <Award className="w-6 h-6 text-[#c9a882]" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-[#755f52] mb-2">Rigorous Vetting</h3>
+                    <h3 className="font-bold text-lg text-[#755f52] mb-2">Thorough Vetting</h3>
                     <p className="text-gray-600">
-                      Every talent undergoes our comprehensive vetting process. Only the best make it into our network of Certified, Premium, and Elite professionals.
+                      Every talent undergoes our vetting process. Qualified professionals join our network of Certified, Premium, and Elite tiers.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-[#BDFF1C] rounded-xl flex items-center justify-center flex-shrink-0">
                     <MapPin className="w-6 h-6 text-white" />
                   </div>
                   <div>
@@ -147,32 +147,32 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
 
           {/* Our Values */}
           <Card className="mb-8 border-0 shadow-premium card-premium">
-            <CardContent className="p-8">
-              <h2 className="text-3xl font-bold text-[#755f52] mb-6">Our Core Values</h2>
+            <CardContent className="p-4 sm:p-6 md:p-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#755f52] mb-4 sm:mb-6">Our Core Values</h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-6 h-6 text-[#B0DD16] mt-1 flex-shrink-0" />
+                  <CheckCircle2 className="w-6 h-6 text-[#BDFF1C] mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-bold text-[#755f52] mb-1">Quality First</h4>
-                    <p className="text-gray-600">We never compromise on quality. Every service, every delivery, every interaction reflects our commitment to excellence.</p>
+                    <p className="text-gray-600">We prioritize quality in our services, deliveries, and interactions, reflecting our commitment to professional standards.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-6 h-6 text-[#B0DD16] mt-1 flex-shrink-0" />
+                  <CheckCircle2 className="w-6 h-6 text-[#BDFF1C] mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-bold text-[#755f52] mb-1">Trust & Transparency</h4>
                     <p className="text-gray-600">We build trust through transparency. Clients can track their request status and view complete activity logs.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-6 h-6 text-[#B0DD16] mt-1 flex-shrink-0" />
+                  <CheckCircle2 className="w-6 h-6 text-[#BDFF1C] mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-bold text-[#755f52] mb-1">Accountability</h4>
                     <p className="text-gray-600">The ECJ brand represents a promise. We take full responsibility for every event we cover.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-6 h-6 text-[#B0DD16] mt-1 flex-shrink-0" />
+                  <CheckCircle2 className="w-6 h-6 text-[#BDFF1C] mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-bold text-[#755f52] mb-1">Community</h4>
                     <p className="text-gray-600">We support Jamaican creative professionals while serving our community with world-class event coverage.</p>
@@ -183,18 +183,18 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
           </Card>
 
           {/* CTA */}
-          <Card className="border-0 shadow-premium-lg bg-gradient-to-r from-[#B0DD16] to-[#9ac514]">
-            <CardContent className="p-8 text-center">
-              <h2 className="text-3xl font-bold text-white mb-4">
+          <Card className="border-0 shadow-premium-lg bg-gradient-to-r from-[#BDFF1C] to-[#a5e00f]">
+            <CardContent className="p-4 sm:p-6 md:p-8 text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">
                 Ready to Experience the ECJ Difference?
               </h2>
-              <p className="text-lg text-white opacity-90 mb-6">
+              <p className="text-base sm:text-lg text-white opacity-90 mb-4 sm:mb-6">
                 Join hundreds of satisfied clients who trust us for their most important events
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                 <Button 
                   size="lg"
-                  className="bg-white text-[#755f52] hover:bg-gray-100 font-bold"
+                  className="bg-white text-[#755f52] hover:bg-gray-100 font-bold w-full sm:w-auto min-h-[48px] sm:min-h-0 sm:h-10 whitespace-nowrap"
                   onClick={() => onNavigate(user ? 'client-dashboard' : 'signup')}
                 >
                   Request Coverage
@@ -202,7 +202,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
                 <Button 
                   size="lg"
                   variant="outline"
-                  className="border-2 border-white text-white hover:bg-white hover:text-[#755f52] font-bold"
+                  className="border-2 border-white text-white hover:bg-white hover:text-[#755f52] font-bold w-full sm:w-auto min-h-[48px] sm:min-h-0 sm:h-10 whitespace-nowrap"
                   onClick={() => onNavigate('services')}
                 >
                   View Our Services

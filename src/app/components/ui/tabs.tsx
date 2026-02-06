@@ -26,7 +26,10 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "bg-muted text-muted-foreground inline-flex min-h-[44px] sm:h-9 w-fit items-center justify-center rounded-xl p-1 sm:p-[3px] flex gap-1 sm:gap-0",
+        // Mobile: horizontal scroll chips
+        "bg-muted text-muted-foreground flex w-full items-center justify-start gap-2 rounded-2xl p-2 overflow-x-auto overflow-y-hidden whitespace-nowrap scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        // Desktop: turn into a wrapping grid (no scroll)
+        "md:overflow-visible md:whitespace-normal md:grid md:grid-cols-4 lg:grid-cols-7 md:gap-2 md:justify-start",
         className,
       )}
       {...props}
@@ -42,7 +45,20 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex min-h-[40px] sm:h-[calc(100%-1px)] flex-1 items-center justify-center gap-1 sm:gap-1.5 rounded-lg sm:rounded-xl border border-transparent px-3 sm:px-2 py-2 sm:py-1 text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200 focus-visible:ring-2 sm:focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3 sm:size-4",
+        // Base
+        "inline-flex items-center justify-center gap-1.5 rounded-xl border border-transparent font-semibold transition-all duration-200 disabled:pointer-events-none disabled:opacity-50",
+        "focus-visible:ring-2 sm:focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // Sizing
+        "h-10 px-4 text-xs sm:text-sm whitespace-nowrap",
+        // Mobile behavior: chip (don't stretch)
+        "flex-none shrink-0 min-h-[44px] sm:min-h-0",
+        // Desktop behavior: fill grid cell and allow wrapping label if needed
+        "md:w-full md:flex md:whitespace-normal md:py-2",
+        // Active styles (default)
+        "data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm dark:data-[state=active]:text-foreground dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground",
+        // Touch optimization
+        "touch-manipulation",
         className,
       )}
       {...props}

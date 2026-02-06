@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/app/components/ui/input';
 import { Users, Shield, Camera, Briefcase, Search, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
+import { getFreshToken } from '/utils/supabase/client';
 
 interface User {
   id: string;
@@ -27,18 +28,40 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [currentToken, setCurrentToken] = useState<string>(accessToken);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
+  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
+    const token = await getFreshToken() || currentToken || accessToken;
+    if (!token) {
+      console.warn('[UserManagement] No access token available');
+      return null;
+    }
+    if (token !== currentToken) setCurrentToken(token);
+
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...options.headers, 'Authorization': `Bearer ${token}` },
+    });
+
+    if (response.status === 401) {
+      console.warn('[UserManagement] Backend returned 401');
+      return null;
+    }
+    return response;
+  };
+
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${serverUrl}/admin/users`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      const response = await makeAuthenticatedRequest(`${serverUrl}/admin/users`);
+
+      if (!response) {
+        setLoading(false);
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -56,14 +79,18 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
-      const response = await fetch(`${serverUrl}/admin/users/${userId}/role`, {
+      const response = await makeAuthenticatedRequest(`${serverUrl}/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ role: newRole }),
       });
+
+      if (!response) {
+        toast.error('Authentication failed. Please try again.');
+        return;
+      }
 
       if (response.ok) {
         toast.success('User role updated successfully');
@@ -85,9 +112,9 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
       case 'manager':
         return <UserCog className="w-4 h-4 text-[#755f52]" />;
       case 'talent':
-        return <Camera className="w-4 h-4 text-[#B0DD16]" />;
+        return <Camera className="w-4 h-4 text-[#BDFF1C]" />;
       case 'client':
-        return <Briefcase className="w-4 h-4 text-[#B0DD16]" />;
+        return <Briefcase className="w-4 h-4 text-[#BDFF1C]" />;
       default:
         return <Users className="w-4 h-4" />;
     }
@@ -100,7 +127,7 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
       case 'manager':
         return 'bg-[#8b7263] text-white';
       case 'talent':
-        return 'bg-[#B0DD16] text-white';
+        return 'bg-[#BDFF1C] text-white';
       case 'client':
         return 'bg-[#c9a882] text-white';
       default:
@@ -142,11 +169,11 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
                 placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                className="pl-10 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl"
               />
             </div>
             <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger className="w-full md:w-48 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl">
+              <SelectTrigger className="w-full md:w-48 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
@@ -171,7 +198,7 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
           {/* Users List */}
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B0DD16]"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#BDFF1C]"></div>
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-16 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl">
@@ -186,7 +213,7 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
               {filteredUsers.map((user) => (
                 <div 
                   key={user.id} 
-                  className="card-premium border-2 border-gray-200 rounded-xl p-4 sm:p-5 hover:border-[#B0DD16] transition-all duration-300 bg-white hover-lift"
+                  className="card-premium border-2 border-gray-200 rounded-xl p-4 sm:p-5 hover:border-[#BDFF1C] transition-all duration-300 bg-white hover-lift"
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex-1">
@@ -213,25 +240,25 @@ export default function UserManagement({ serverUrl, accessToken, currentUser }: 
 
                     {/* Role Selector */}
                     {canEditRoles && user.id !== currentUser.id && (
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-600 font-medium">Change role:</span>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                        <span className="text-xs sm:text-sm text-gray-600 font-medium whitespace-nowrap">Change role:</span>
                         <Select 
                           value={user.role}
                           onValueChange={(newRole) => updateUserRole(user.id, newRole)}
                         >
-                          <SelectTrigger className="w-full sm:w-48 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl">
+                          <SelectTrigger className="w-full sm:w-48 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl min-h-[44px] sm:min-h-0 sm:h-10">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="client">
                               <div className="flex items-center gap-2">
-                                <Briefcase className="w-4 h-4 text-[#B0DD16]" />
+                                <Briefcase className="w-4 h-4 text-[#BDFF1C]" />
                                 <span>Client</span>
                               </div>
                             </SelectItem>
                             <SelectItem value="talent">
                               <div className="flex items-center gap-2">
-                                <Camera className="w-4 h-4 text-[#B0DD16]" />
+                                <Camera className="w-4 h-4 text-[#BDFF1C]" />
                                 <span>Talent</span>
                               </div>
                             </SelectItem>

@@ -5,6 +5,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Textarea } from '@/app/components/ui/textarea';
 import { CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { getFreshToken } from '/utils/supabase/client';
 
 interface ApprovalQueueProps {
   serverUrl: string;
@@ -18,30 +19,47 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
   const [activeTab, setActiveTab] = useState<'services' | 'talents'>('services');
   const [reviewingItem, setReviewingItem] = useState<any>(null);
   const [reviewNotes, setReviewNotes] = useState('');
+  const [currentToken, setCurrentToken] = useState<string>(accessToken);
 
   useEffect(() => {
     fetchPendingItems();
   }, []);
 
+  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
+    const token = await getFreshToken() || currentToken || accessToken;
+    if (!token) {
+      console.warn('[ApprovalQueue] No access token available');
+      return null;
+    }
+    if (token !== currentToken) setCurrentToken(token);
+
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...options.headers, 'Authorization': `Bearer ${token}` },
+    });
+
+    if (response.status === 401) {
+      console.warn('[ApprovalQueue] Backend returned 401');
+      return null;
+    }
+    return response;
+  };
+
   const fetchPendingItems = async () => {
     try {
       // Fetch pending services
-      const servicesResponse = await fetch(`${serverUrl}/admin/services`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-      });
+      const servicesResponse = await makeAuthenticatedRequest(`${serverUrl}/admin/services`);
 
-      if (servicesResponse.ok) {
+      if (servicesResponse?.ok) {
         const servicesData = await servicesResponse.json();
         const pending = servicesData.services.filter((s: any) => s.status === 'pending_approval');
         setServices(pending);
       }
 
       // Fetch pending talents
-      const talentsResponse = await fetch(`${serverUrl}/admin/talents`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-      });
+      const talentsResponse = await makeAuthenticatedRequest(`${serverUrl}/admin/talents`);
 
-      if (talentsResponse.ok) {
+      if (talentsResponse?.ok) {
         const talentsData = await talentsResponse.json();
         const pending = talentsData.talents.filter((t: any) => t.status === 'pending');
         setTalents(pending);
@@ -56,10 +74,14 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
 
   const handleApproveService = async (serviceId: string) => {
     try {
-      const response = await fetch(`${serverUrl}/services/${serviceId}/approve`, {
+      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}/approve`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
+
+      if (!response) {
+        toast.error('Authentication failed. Please try again.');
+        return;
+      }
 
       if (response.ok) {
         toast.success('Service approved! Admin can now publish it.');
@@ -83,10 +105,9 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
 
     try {
       // Update service back to draft with notes
-      const response = await fetch(`${serverUrl}/services/${serviceId}`, {
+      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -94,6 +115,11 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
           internalNotes: `MANAGER FEEDBACK: ${reviewNotes}\n\n${reviewingItem.internalNotes || ''}`,
         }),
       });
+
+      if (!response) {
+        toast.error('Authentication failed. Please try again.');
+        return;
+      }
 
       if (response.ok) {
         toast.success('Service returned to draft with feedback');
@@ -112,10 +138,14 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
 
   const handleApproveTalent = async (talentId: string) => {
     try {
-      const response = await fetch(`${serverUrl}/talents/${talentId}/approve`, {
+      const response = await makeAuthenticatedRequest(`${serverUrl}/talents/${talentId}/approve`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
+
+      if (!response) {
+        toast.error('Authentication failed. Please try again.');
+        return;
+      }
 
       if (response.ok) {
         toast.success('Talent approved and added to crew pool');
@@ -138,14 +168,18 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
     }
 
     try {
-      const response = await fetch(`${serverUrl}/talents/${talentId}/reject`, {
+      const response = await makeAuthenticatedRequest(`${serverUrl}/talents/${talentId}/reject`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ reason: reviewNotes }),
       });
+
+      if (!response) {
+        toast.error('Authentication failed. Please try again.');
+        return;
+      }
 
       if (response.ok) {
         toast.success('Talent application rejected');
@@ -169,10 +203,14 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
           <h2 className="text-2xl font-bold">
             Review {activeTab === 'services' ? 'Service' : 'Talent Application'}
           </h2>
-          <Button variant="outline" onClick={() => {
-            setReviewingItem(null);
-            setReviewNotes('');
-          }}>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setReviewingItem(null);
+              setReviewNotes('');
+            }}
+            className="w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap"
+          >
             Back to Queue
           </Button>
         </div>
@@ -210,7 +248,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
         <button
           className={`px-3 sm:px-4 py-2 text-sm sm:text-base font-medium transition-colors ${
             activeTab === 'services'
-              ? 'border-b-2 border-[#B0DD16] text-[#B0DD16]'
+              ? 'border-b-2 border-[#BDFF1C] text-[#BDFF1C]'
               : 'text-gray-600 hover:text-gray-900'
           }`}
           onClick={() => setActiveTab('services')}
@@ -220,7 +258,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
         <button
           className={`px-3 sm:px-4 py-2 text-sm sm:text-base font-medium transition-colors ${
             activeTab === 'talents'
-              ? 'border-b-2 border-[#B0DD16] text-[#B0DD16]'
+              ? 'border-b-2 border-[#BDFF1C] text-[#BDFF1C]'
               : 'text-gray-600 hover:text-gray-900'
           }`}
           onClick={() => setActiveTab('talents')}
@@ -409,18 +447,20 @@ function ServiceReviewCard({ service, reviewNotes, onNotesChange, onApprove, onR
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
-              className="flex-1 min-h-[44px] sm:h-10 border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all"
+              className="flex-1 min-h-[44px] sm:min-h-0 sm:h-10 border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all whitespace-nowrap"
               onClick={onReject}
             >
-              <XCircle className="w-4 h-4 sm:mr-2" />
-              Request Changes
+              <XCircle className="w-4 h-4 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Request Changes</span>
+              <span className="sm:hidden">Changes</span>
             </Button>
             <Button
-              className="button-glow flex-1 min-h-[44px] sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
+              className="button-glow flex-1 min-h-[44px] sm:min-h-0 sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
               onClick={onApprove}
             >
-              <CheckCircle className="w-4 h-4 sm:mr-2" />
-              Approve Service
+              <CheckCircle className="w-4 h-4 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Approve Service</span>
+              <span className="sm:hidden">Approve</span>
             </Button>
           </div>
 
@@ -505,18 +545,20 @@ function TalentReviewCard({ talent, reviewNotes, onNotesChange, onApprove, onRej
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
-              className="flex-1 min-h-[44px] sm:h-10 border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all"
+              className="flex-1 min-h-[44px] sm:min-h-0 sm:h-10 border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all whitespace-nowrap"
               onClick={onReject}
             >
-              <XCircle className="w-4 h-4 sm:mr-2" />
-              Reject Application
+              <XCircle className="w-4 h-4 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Reject Application</span>
+              <span className="sm:hidden">Reject</span>
             </Button>
             <Button
-              className="button-glow flex-1 min-h-[44px] sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
+              className="button-glow flex-1 min-h-[44px] sm:min-h-0 sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
               onClick={onApprove}
             >
-              <CheckCircle className="w-4 h-4 sm:mr-2" />
-              Approve & Add to Crew
+              <CheckCircle className="w-4 h-4 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Approve & Add to Crew</span>
+              <span className="sm:hidden">Approve</span>
             </Button>
           </div>
         </CardContent>

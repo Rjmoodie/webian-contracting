@@ -1,6 +1,7 @@
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { ArrowLeft, FileText, Shield, AlertCircle } from 'lucide-react';
+import Navigation from './Navigation';
 
 interface TermsPoliciesPageProps {
   onNavigate: (page: string) => void;
@@ -11,71 +12,47 @@ interface TermsPoliciesPageProps {
 export default function TermsPoliciesPage({ onNavigate, onLogout, user }: TermsPoliciesPageProps) {
   return (
     <div className="min-h-screen bg-[#f5f1eb]">
-      {/* Header */}
-      <nav className="bg-white border-b border-[#755f5233]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-6">
-              <h1 
-                className="text-2xl font-bold text-[#B0DD16] cursor-pointer" 
-                onClick={() => onNavigate('home')}
-              >
-                EventCoverageJamaica
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <span className="text-sm text-gray-700">Hi, {user.name}</span>
-                  <Button variant="outline" size="sm" onClick={onLogout}>
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => onNavigate('login')}>
-                    Login
-                  </Button>
-                  <Button size="sm" className="bg-[#B0DD16] hover:bg-[#9ac514]" onClick={() => onNavigate('signup')}>
-                    Sign Up
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Navigation */}
+      <Navigation
+        user={user}
+        onNavigate={onNavigate}
+        onLogout={onLogout}
+        variant="public"
+        showNavLinks={false}
+      />
+      {/* Spacer for fixed header */}
+      <div className="h-24" />
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4 overflow-hidden bg-gradient-to-r from-[#755f52] to-[#8b7263]">
+      <section className="relative py-12 sm:py-16 md:py-20 px-4 overflow-hidden bg-gradient-to-r from-[#755f52] to-[#8b7263]">
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-96 h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
+          <div className="absolute top-10 left-10 w-64 h-64 sm:w-96 sm:h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 right-10 w-64 h-64 sm:w-96 sm:h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
         </div>
         
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <Button 
             variant="ghost" 
-            className="text-white hover:text-[#c9a882] mb-6"
+            className="text-white hover:text-[#c9a882] mb-4 sm:mb-6"
             onClick={() => onNavigate('home')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <FileText className="w-12 h-12 text-[#B0DD16]" />
+          <div className="flex items-center justify-center gap-3 mb-4 sm:mb-6">
+            <FileText className="w-8 h-8 sm:w-10 sm:h-12 text-[#BDFF1C]" />
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
             Terms & Policies
           </h1>
-          <p className="text-xl text-[#e8dfd1] leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-[#e8dfd1] leading-relaxed">
             Last Updated: January 25, 2026
           </p>
         </div>
       </section>
 
       {/* Main Content */}
-      <section className="py-16 px-4">
+      <section className="py-8 sm:py-12 md:py-16 px-4">
         <div className="max-w-4xl mx-auto">
           {/* Introduction */}
           <Card className="mb-8 border-0 shadow-lg bg-blue-50 border-l-4 border-blue-500">
@@ -93,15 +70,15 @@ export default function TermsPoliciesPage({ onNavigate, onLogout, user }: TermsP
 
           {/* Terms of Service */}
           <Card className="mb-8 border-0 shadow-lg">
-            <CardContent className="p-8">
-              <h2 className="text-3xl font-bold text-[#755f52] mb-6 flex items-center gap-3">
-                <FileText className="w-8 h-8 text-[#B0DD16]" />
+            <CardContent className="p-4 sm:p-6 md:p-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#755f52] mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-[#BDFF1C]" />
                 Terms of Service
               </h2>
 
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div>
-                  <h3 className="text-xl font-bold text-[#755f52] mb-3">1. Service Overview</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-[#755f52] mb-2 sm:mb-3">1. Service Overview</h3>
                   <p className="text-gray-700 leading-relaxed mb-2">
                     EventCoverageJamaica (ECJ) operates a managed marketplace platform connecting clients with vetted event coverage professionals across Jamaica. All services are ECJ-branded and backed by our quality guarantee.
                   </p>
@@ -110,7 +87,7 @@ export default function TermsPoliciesPage({ onNavigate, onLogout, user }: TermsP
                   </p>
                   <ul className="list-disc pl-6 space-y-1 text-gray-700">
                     <li>Talent remains private; clients interact only with ECJ</li>
-                    <li>All services are managed and guaranteed by ECJ</li>
+                    <li>All services are managed by ECJ with a commitment to quality</li>
                     <li>We handle talent assignment, quality control, and delivery</li>
                   </ul>
                 </div>
@@ -187,7 +164,7 @@ export default function TermsPoliciesPage({ onNavigate, onLogout, user }: TermsP
           <Card className="mb-8 border-0 shadow-lg">
             <CardContent className="p-8">
               <h2 className="text-3xl font-bold text-[#755f52] mb-6 flex items-center gap-3">
-                <Shield className="w-8 h-8 text-[#B0DD16]" />
+                <Shield className="w-8 h-8 text-[#BDFF1C]" />
                 Privacy Policy
               </h2>
 

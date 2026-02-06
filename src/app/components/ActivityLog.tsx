@@ -91,7 +91,7 @@ export default function ActivityLog({ activities, userRole }: ActivityLogProps) 
             <div className="flex items-center gap-2 mt-1">
               <Badge className="bg-gray-200 text-gray-700 text-xs capitalize">{activity.oldValue}</Badge>
               <span className="text-gray-400">→</span>
-              <Badge className="bg-[#B0DD16] text-white text-xs capitalize">{activity.newValue}</Badge>
+              <Badge className="bg-[#BDFF1C] text-white text-xs capitalize">{activity.newValue}</Badge>
             </div>
             {activity.details?.note && (
               <p className="text-sm text-gray-600 mt-2 italic">"{activity.details.note}"</p>
@@ -207,13 +207,13 @@ export default function ActivityLog({ activities, userRole }: ActivityLogProps) 
       <CardContent>
         <div className="relative">
           {/* Timeline line */}
-          <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#B0DD16] via-[#755f52] to-gray-300" />
+          <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#BDFF1C] via-[#755f52] to-gray-300" />
           
           <div className="space-y-6">
             {activities.map((activity, index) => (
               <div key={activity.id} className="relative flex gap-4">
                 {/* Icon */}
-                <div className="relative z-10 flex-shrink-0 w-12 h-12 rounded-full bg-white border-2 border-[#B0DD16] flex items-center justify-center shadow-sm">
+                <div className="relative z-10 flex-shrink-0 w-12 h-12 rounded-full bg-white border-2 border-[#BDFF1C] flex items-center justify-center shadow-sm">
                   {getActionIcon(activity.action)}
                 </div>
                 

@@ -10,6 +10,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { ArrowLeft, ArrowRight, Check, Camera, Video, Music, CheckCircle2, Search, MapPin, Tag, Sparkles, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import ECJLogo from '@/app/components/ECJLogo';
 
 interface CreateRequestWizardProps {
   serverUrl: string;
@@ -227,19 +228,32 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <nav className="bg-white border-b border-gray-200">
+      <nav className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50 header-nav">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-bold text-blue-600 cursor-pointer" onClick={() => onNavigate('home')}>
-              EventCoverageJamaica
-            </h1>
-            <Button variant="ghost" onClick={onClose}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
+          <div className="flex justify-between items-center h-16 gap-2 sm:gap-4 md:gap-6">
+            <button
+              type="button"
+              onClick={() => onNavigate('home')}
+              className="flex items-center cursor-pointer shrink-0"
+              aria-label="Event Coverage Jamaica – Home"
+            >
+              <ECJLogo size="xl" className="max-h-full" />
+            </button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={onClose}
+              className="inline-flex items-center whitespace-nowrap shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2 shrink-0" />
+              <span className="hidden sm:inline">Back to Dashboard</span>
+              <span className="sm:hidden">Back</span>
             </Button>
           </div>
         </div>
       </nav>
+      {/* Spacer for fixed header */}
+      <div className="h-24" />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress */}
@@ -361,7 +375,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
               <div className="space-y-6">
                 {/* Selection Summary */}
                 {formData.selectedServices.length > 0 && (
-                  <div className="bg-gradient-to-r from-[#B0DD16]/10 to-[#7fa589]/10 border-2 border-[#B0DD16] rounded-xl p-4">
+                  <div className="bg-gradient-to-r from-[#BDFF1C]/10 to-[#7fa589]/10 border-2 border-[#BDFF1C] rounded-xl p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5 text-[#7fa589]" />
@@ -417,7 +431,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                       placeholder="Search services by name, type, or description..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      className="pl-10 h-12 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl"
                     />
                   </div>
 
@@ -451,7 +465,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                           onCheckedChange={setShowParishMatch}
                         />
                         <Label htmlFor="parishMatch" className="text-sm cursor-pointer flex items-center gap-1">
-                          <MapPin className="w-4 h-4 text-[#B0DD16]" />
+                          <MapPin className="w-4 h-4 text-[#BDFF1C]" />
                           {formData.parish} only
                         </Label>
                       </div>
@@ -467,7 +481,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                 {/* Service Cards */}
                 {loadingServices ? (
                   <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#B0DD16]"></div>
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#BDFF1C]"></div>
                   </div>
                 ) : filteredServices.length === 0 ? (
                   <div className="text-center py-12 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl">
@@ -500,15 +514,15 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                           key={service.id} 
                           className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-200 ${
                             isSelected 
-                              ? 'border-[#B0DD16] bg-[#B0DD16]/10 shadow-lg transform scale-[1.02]' 
-                              : 'border-gray-200 hover:border-[#B0DD16]/50 hover:shadow-md'
+                              ? 'border-[#BDFF1C] bg-[#BDFF1C]/10 shadow-lg transform scale-[1.02]' 
+                              : 'border-gray-200 hover:border-[#BDFF1C]/50 hover:shadow-md'
                           }`}
                           onClick={() => toggleService(service.id)}
                         >
                           <div className="flex items-start gap-4">
                             {/* Icon */}
                             <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                              isSelected ? 'bg-[#B0DD16] text-white' : 'bg-[#755f52]/10 text-[#755f52]'
+                              isSelected ? 'bg-[#BDFF1C] text-white' : 'bg-[#755f52]/10 text-[#755f52]'
                             }`}>
                               {getCategoryIcon(service.category)}
                             </div>
@@ -521,7 +535,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <h3 className="text-lg font-bold text-[#755f52]">{service.serviceName}</h3>
                                     {isSelected && (
-                                      <CheckCircle2 className="w-5 h-5 text-[#B0DD16] flex-shrink-0" />
+                                      <CheckCircle2 className="w-5 h-5 text-[#BDFF1C] flex-shrink-0" />
                                     )}
                                   </div>
                                   <div className="flex flex-wrap gap-2 items-center">
@@ -533,7 +547,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                                       </Badge>
                                     )}
                                     {availableHere && formData.parish && (
-                                      <Badge className="bg-[#B0DD16] text-white text-xs">
+                                      <Badge className="bg-[#BDFF1C] text-white text-xs">
                                         <MapPin className="w-3 h-3 mr-1" />
                                         {formData.parish}
                                       </Badge>
@@ -575,7 +589,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {service.deliverables.slice(0, 4).map((item: string, i: number) => (
                                       <li key={i} className="text-xs text-gray-600 flex items-start gap-2">
-                                        <CheckCircle2 className="w-3 h-3 text-[#B0DD16] mt-0.5 flex-shrink-0" />
+                                        <CheckCircle2 className="w-3 h-3 text-[#BDFF1C] mt-0.5 flex-shrink-0" />
                                         <span>{item}</span>
                                       </li>
                                     ))}
@@ -610,7 +624,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                                   )}
                                   {service.onTimeDeliveryRate && (
                                     <div className="text-xs">
-                                      <span className="font-semibold text-[#B0DD16]">{service.onTimeDeliveryRate}%</span>
+                                      <span className="font-semibold text-[#BDFF1C]">{service.onTimeDeliveryRate}%</span>
                                       <span className="text-gray-500"> on-time</span>
                                     </div>
                                   )}
@@ -640,7 +654,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                 {/* Selected Services Summary */}
                 <div className="bg-gradient-to-br from-[#755f52]/5 to-[#c9a882]/10 border-2 border-[#755f52]/20 rounded-xl p-5">
                   <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle2 className="w-5 h-5 text-[#B0DD16]" />
+                    <CheckCircle2 className="w-5 h-5 text-[#BDFF1C]" />
                     <h3 className="font-bold text-[#755f52]">Your Selected Services</h3>
                   </div>
                   
@@ -648,7 +662,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                     {selectedServiceObjects.map((service, index) => (
                       <div key={service.id} className="bg-white rounded-lg p-4 border border-[#755f52]/10">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-[#B0DD16] text-white flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-lg bg-[#BDFF1C] text-white flex items-center justify-center flex-shrink-0">
                             {getCategoryIcon(service.category)}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -665,7 +679,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                                 <ul className="grid grid-cols-1 gap-1">
                                   {service.deliverables.slice(0, 3).map((item: string, i: number) => (
                                     <li key={i} className="text-xs text-gray-600 flex items-start gap-1">
-                                      <CheckCircle2 className="w-3 h-3 text-[#B0DD16] mt-0.5 flex-shrink-0" />
+                                      <CheckCircle2 className="w-3 h-3 text-[#BDFF1C] mt-0.5 flex-shrink-0" />
                                       <span>{item}</span>
                                     </li>
                                   ))}
@@ -699,7 +713,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                     How quickly do you need your deliverables?
                   </p>
                   <Select value={formData.turnaround} onValueChange={(value) => updateFormData('turnaround', value)}>
-                    <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-[#B0DD16]">
+                    <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-[#BDFF1C]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -744,7 +758,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                     placeholder="e.g., $500-$1000 or JMD 75,000-150,000"
                     value={formData.budget}
                     onChange={(e) => updateFormData('budget', e.target.value)}
-                    className="h-12 border-2 border-gray-200 focus:border-[#B0DD16]"
+                    className="h-12 border-2 border-gray-200 focus:border-[#BDFF1C]"
                   />
                 </div>
 
@@ -762,14 +776,14 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                     rows={5}
                     value={formData.notes}
                     onChange={(e) => updateFormData('notes', e.target.value)}
-                    className="border-2 border-gray-200 focus:border-[#B0DD16] resize-none"
+                    className="border-2 border-gray-200 focus:border-[#BDFF1C] resize-none"
                   />
                 </div>
 
                 {/* ECJ Guarantee Badge */}
-                <div className="bg-gradient-to-r from-[#B0DD16]/10 to-[#7fa589]/10 border-2 border-[#B0DD16] rounded-xl p-5">
+                <div className="bg-gradient-to-r from-[#BDFF1C]/10 to-[#7fa589]/10 border-2 border-[#BDFF1C] rounded-xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#B0DD16] flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#BDFF1C] flex items-center justify-center flex-shrink-0">
                       <CheckCircle2 className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -841,9 +855,9 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                 </div>
 
                 {/* Selected Services */}
-                <div className="bg-gradient-to-br from-[#B0DD16]/10 to-[#7fa589]/10 rounded-xl p-5 border-2 border-[#B0DD16]/50">
+                <div className="bg-gradient-to-br from-[#BDFF1C]/10 to-[#7fa589]/10 rounded-xl p-5 border-2 border-[#BDFF1C]/50">
                   <h3 className="font-bold text-[#755f52] mb-3 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#B0DD16] text-white flex items-center justify-center text-sm">
+                    <div className="w-8 h-8 rounded-lg bg-[#BDFF1C] text-white flex items-center justify-center text-sm">
                       2
                     </div>
                     Selected Services ({selectedServiceObjects.length})
@@ -852,7 +866,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                     {selectedServiceObjects.map((service, index) => (
                       <div key={service.id} className="bg-white rounded-lg p-4 border border-[#755f52]/10">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-[#B0DD16] text-white flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-lg bg-[#BDFF1C] text-white flex items-center justify-center flex-shrink-0">
                             {getCategoryIcon(service.category)}
                           </div>
                           <div className="flex-1">
@@ -868,7 +882,7 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                                   {service.deliverables.slice(0, 4).map((item: string, i: number) => (
                                     <li key={i} className="text-xs text-gray-600 flex items-start gap-1">
-                                      <CheckCircle2 className="w-3 h-3 text-[#B0DD16] mt-0.5 flex-shrink-0" />
+                                      <CheckCircle2 className="w-3 h-3 text-[#BDFF1C] mt-0.5 flex-shrink-0" />
                                       <span>{item}</span>
                                     </li>
                                   ))}
@@ -933,28 +947,28 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                 )}
 
                 {/* ECJ Guarantee */}
-                <div className="bg-gradient-to-r from-[#B0DD16]/20 to-[#7fa589]/20 border-2 border-[#B0DD16] rounded-xl p-5">
+                <div className="bg-gradient-to-r from-[#BDFF1C]/20 to-[#7fa589]/20 border-2 border-[#BDFF1C] rounded-xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#B0DD16] flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-[#BDFF1C] flex items-center justify-center flex-shrink-0">
                       <CheckCircle2 className="w-7 h-7 text-white" />
                     </div>
                     <div>
                       <h4 className="font-bold text-[#755f52] text-lg mb-2">What Happens Next?</h4>
                       <ul className="space-y-2 text-sm text-gray-700">
                         <li className="flex items-start gap-2">
-                          <span className="text-[#B0DD16] font-bold">1.</span>
+                          <span className="text-[#BDFF1C] font-bold">1.</span>
                           <span>Your request will be reviewed by our team within 24 hours</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-[#B0DD16] font-bold">2.</span>
+                          <span className="text-[#BDFF1C] font-bold">2.</span>
                           <span>We'll match you with the best available talent for your event</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-[#B0DD16] font-bold">3.</span>
+                          <span className="text-[#BDFF1C] font-bold">3.</span>
                           <span>You'll receive a detailed quote and confirmation</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-[#B0DD16] font-bold">4.</span>
+                          <span className="text-[#BDFF1C] font-bold">4.</span>
                           <span>All work is backed by our quality guarantee</span>
                         </li>
                       </ul>
@@ -972,13 +986,14 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between pt-6 border-t">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 pt-6 border-t">
               <Button
                 variant="outline"
                 onClick={() => setStep(step - 1)}
                 disabled={step === 1}
+                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap order-2 sm:order-1"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 sm:mr-2 shrink-0" />
                 Previous
               </Button>
 
@@ -986,14 +1001,19 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                 <Button
                   onClick={() => setStep(step + 1)}
                   disabled={(step === 1 && !canProceedStep1) || (step === 2 && !canProceedStep2)}
+                  className="w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap order-1 sm:order-2"
                 >
                   Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <ArrowRight className="w-4 h-4 sm:ml-2 shrink-0" />
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
-                  Submit Request
-                  <Check className="w-4 h-4 ml-2" />
+                <Button 
+                  onClick={handleSubmit} 
+                  className="bg-green-600 hover:bg-green-700 w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap order-1 sm:order-2"
+                >
+                  <span className="hidden sm:inline">Submit Request</span>
+                  <span className="sm:hidden">Submit</span>
+                  <Check className="w-4 h-4 sm:ml-2 shrink-0" />
                 </Button>
               )}
             </div>

@@ -1,0 +1,38 @@
+diff --git a/lib/MapContainer.js b/lib/MapContainer.js
+index 1234567..abcdefg 100644
+--- a/lib/MapContainer.js
++++ b/lib/MapContainer.js
+@@ -36,7 +36,7 @@ function MapContainerComponent({ bounds, boundsOptions, center, children, classN
+         context
+     ]);
+-    const contents = context ? /*#__PURE__*/ React.createElement(LeafletContext, {
++    const contents = context ? /*#__PURE__*/ React.createElement(LeafletContext.Provider, {
+         value: context
+     }, children) : placeholder ?? null;
+     return /*#__PURE__*/ React.createElement("div", {
+diff --git a/lib/Pane.js b/lib/Pane.js
+index 1234567..abcdefg 100644
+--- a/lib/Pane.js
++++ b/lib/Pane.js
+@@ -66,7 +66,7 @@ function PaneComponent(props, forwardedRef) {
+             }
+         };
+     }, []);
+-    return props.children != null && paneElement != null ? /*#__PURE__*/ createPortal(/*#__PURE__*/ React.createElement(LeafletContext, {
++    return props.children != null && paneElement != null ? /*#__PURE__*/ createPortal(/*#__PURE__*/ React.createElement(LeafletContext.Provider, {
+         value: newContext
+     }, props.children), paneElement) : null;
+ }
+diff --git a/lib/LayersControl.js b/lib/LayersControl.js
+index 1234567..abcdefg 100644
+--- a/lib/LayersControl.js
++++ b/lib/LayersControl.js
+@@ -66,7 +66,7 @@ function createControlledLayer(addLayer) {
+                 propsRef.current = props;
+             }
+         });
+-        return props.children ? /*#__PURE__*/ React.createElement(LeafletContext, {
++        return props.children ? /*#__PURE__*/ React.createElement(LeafletContext.Provider, {
+             value: context
+         }, props.children) : null;
+     };

@@ -188,7 +188,7 @@ export default function RequestDetailsPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f5f1eb] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B0DD16]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#BDFF1C]"></div>
       </div>
     );
   }
@@ -197,10 +197,10 @@ export default function RequestDetailsPage({
     return (
       <div className="min-h-screen bg-[#f5f1eb] flex items-center justify-center">
         <Card className="max-w-md">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Request Not Found</h3>
-            <p className="text-gray-600 mb-4">The request you're looking for doesn't exist or you don't have access to it.</p>
+          <CardContent className="p-4 sm:p-6 md:p-8 text-center">
+            <AlertCircle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-base sm:text-lg font-semibold mb-2">Request Not Found</h3>
+            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">The request you're looking for doesn't exist or you don't have access to it.</p>
             <Button onClick={onBack}>Go Back</Button>
           </CardContent>
         </Card>
@@ -220,31 +220,31 @@ export default function RequestDetailsPage({
                 Back
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-[#755f52]">{request.eventName}</h1>
-                <p className="text-sm text-gray-600">Request ID: {request.id}</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-[#755f52]">{request.eventName}</h1>
+                <p className="text-xs sm:text-sm text-gray-600">Request ID: {request.id}</p>
               </div>
             </div>
-            <Badge className={`text-sm px-4 py-2 ${getStatusColor(request.status)}`}>
+            <Badge className={`text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 ${getStatusColor(request.status)}`}>
               {request.status.replace(/_/g, ' ').toUpperCase()}
             </Badge>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Left Column - Request Details */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Event Information */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                   Event Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+              <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <Label className="text-gray-600">Event Date</Label>
                     <p className="font-semibold text-gray-900">
@@ -298,17 +298,17 @@ export default function RequestDetailsPage({
             {/* Selected Services */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Camera className="w-5 h-5" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
                   Selected Services ({request.serviceDetails?.length || 0})
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <div className="space-y-3">
                   {request.serviceDetails && request.serviceDetails.map((service: any) => (
-                    <div key={service.id} className="border-2 border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-[#B0DD16] text-white flex items-center justify-center flex-shrink-0">
+                    <div key={service.id} className="border-2 border-gray-200 rounded-lg p-3 sm:p-4">
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-[#BDFF1C] text-white flex items-center justify-center flex-shrink-0">
                           {getCategoryIcon(service.category)}
                         </div>
                         <div className="flex-1">
@@ -322,7 +322,7 @@ export default function RequestDetailsPage({
                             <ul className="space-y-1">
                               {service.deliverables.slice(0, 3).map((item: string, i: number) => (
                                 <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                                  <CheckCircle2 className="w-4 h-4 text-[#B0DD16] mt-0.5 flex-shrink-0" />
+                                  <CheckCircle2 className="w-4 h-4 text-[#BDFF1C] mt-0.5 flex-shrink-0" />
                                   {item}
                                 </li>
                               ))}
@@ -345,12 +345,12 @@ export default function RequestDetailsPage({
             {request.notes && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5" />
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
                     Notes & Communication
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 sm:p-6">
                   <div className="space-y-3">
                     {request.notes.map((note: any) => (
                       <div 
@@ -394,12 +394,12 @@ export default function RequestDetailsPage({
             {/* Client Info */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   Client Information
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <div className="space-y-2">
                   <div>
                     <Label className="text-gray-600">Name</Label>
@@ -427,9 +427,9 @@ export default function RequestDetailsPage({
             {isAdmin && request.status !== 'cancelled' && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Manage Status</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">Manage Status</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-4 sm:p-6 space-y-4">
                   <div>
                     <Label>Change Status</Label>
                     <Select value={newStatus} onValueChange={setNewStatus}>
@@ -448,7 +448,7 @@ export default function RequestDetailsPage({
                   {newStatus !== request.status && (
                     <Button 
                       onClick={handleStatusChange} 
-                      className="w-full bg-[#B0DD16] hover:bg-[#9ac514] text-white"
+                      className="w-full bg-[#BDFF1C] hover:bg-[#a5e00f] text-white"
                     >
                       Update Status
                     </Button>
@@ -460,9 +460,9 @@ export default function RequestDetailsPage({
             {/* Add Note */}
             <Card>
               <CardHeader>
-                <CardTitle>Add Note</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Add Note</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-4 sm:p-6 space-y-4">
                 <div>
                   <Textarea
                     placeholder="Add a note or comment..."
@@ -499,9 +499,9 @@ export default function RequestDetailsPage({
             {(isClient || isAdmin) && request.status !== 'cancelled' && request.status !== 'completed' && (
               <Card className="border-red-200">
                 <CardHeader>
-                  <CardTitle className="text-red-600">Cancel Request</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl text-red-600">Cancel Request</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-4 sm:p-6 space-y-4">
                   {!showCancelDialog ? (
                     <Button 
                       onClick={() => setShowCancelDialog(true)}

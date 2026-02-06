@@ -6,6 +6,7 @@ import { Card } from '@/app/components/ui/card';
 import { toast } from 'sonner';
 import { Camera, ArrowLeft, Lock, Mail } from 'lucide-react';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import ECJLogo from '@/app/components/ECJLogo';
 
 interface LoginPageProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -37,16 +38,8 @@ export default function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
       <nav className="glass-dark fixed top-0 left-0 right-0 z-50 shadow-premium-lg border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('home')}>
-              <div className="w-9 h-9 gradient-premium-gold rounded-xl flex items-center justify-center shadow-premium">
-                <Camera className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-white tracking-tight">{/* Reduced from text-xl */}
-                  EventCoverageJamaica
-                </h1>
-                <p className="text-[10px] text-[#c9a882]">Professional Event Services</p>{/* Reduced from text-xs */}
-              </div>
+            <div className="flex items-center cursor-pointer" onClick={() => onNavigate('home')} aria-label="Event Coverage Jamaica – Home">
+              <ECJLogo size="xl" className="flex-shrink-0 max-h-full" />
             </div>
           </div>
         </div>
@@ -56,34 +49,29 @@ export default function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 bg-[#755f52] rounded-xl flex items-center justify-center">
-              <Camera className="w-6 h-6 text-[#c9a882]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-[#755f52]">EventCoverageJamaica</h1>
-            </div>
+          <div className="lg:hidden flex justify-center mb-8">
+            <ECJLogo size="xl" />
           </div>
 
           <Card className="border-0 shadow-premium-xl bg-white rounded-2xl overflow-hidden card-premium">
-            <div className="p-8">
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold text-[#755f52] mb-2">Sign In</h2>
-                <p className="text-gray-600">Enter your credentials to access your account</p>
+            <div className="p-4 sm:p-6 md:p-8">
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#755f52] mb-2">Sign In</h2>
+                <p className="text-sm sm:text-base text-gray-600">Enter your credentials to access your account</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <Label htmlFor="email" className="text-[#755f52] font-semibold">Email Address</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0DD16]" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#BDFF1C]" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="your@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl"
                       autoComplete="email"
                       required
                     />
@@ -96,14 +84,14 @@ export default function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
                     <Label htmlFor="password" className="text-[#755f52] font-semibold">Password</Label>
                   </div>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0DD16]" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#BDFF1C]" />
                     <Input
                       id="password"
                       type="password"
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#B0DD16] rounded-xl"
+                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl"
                       autoComplete="current-password"
                       required
                     />

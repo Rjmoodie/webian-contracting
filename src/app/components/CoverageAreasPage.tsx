@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { MapPin, Building2, Users, Clock, CheckCircle2, ArrowLeft, Camera } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import Navigation from './Navigation';
 import JamaicaMap from '@/app/components/JamaicaMap';
-import JamaicaLeafletMap from '@/app/components/JamaicaLeafletMap';
 import jamaicaMap from 'figma:asset/7f8950c56c52dca925d40dbb81dc5bffa4ea6cb0.png';
+
+// Lazy load the map component to avoid SSR issues
+const JamaicaLeafletMap = lazy(() => import('@/app/components/JamaicaLeafletMap'));
 
 interface CoverageAreasPageProps {
   onNavigate: (page: string) => void;
@@ -108,31 +110,31 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
         showNavLinks={false}
       />
       {/* Spacer for fixed header */}
-      <div className="h-16" />
+      <div className="h-24" />
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4 overflow-hidden bg-gradient-to-r from-[#755f52] to-[#8b7263]">
+      <section className="relative py-12 sm:py-16 md:py-20 px-4 overflow-hidden bg-gradient-to-r from-[#755f52] to-[#8b7263]">
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-96 h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
+          <div className="absolute top-10 left-10 w-64 h-64 sm:w-96 sm:h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 right-10 w-64 h-64 sm:w-96 sm:h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
         </div>
         
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <Button 
             variant="ghost" 
-            className="text-white hover:text-[#c9a882] mb-6"
+            className="text-white hover:text-[#c9a882] mb-4 sm:mb-6"
             onClick={() => onNavigate('home')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <MapPin className="w-12 h-12 text-[#B0DD16]" />
+          <div className="flex items-center justify-center gap-3 mb-4 sm:mb-6">
+            <MapPin className="w-8 h-8 sm:w-10 sm:h-12 text-[#BDFF1C]" />
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
             Island-Wide Coverage
           </h1>
-          <p className="text-xl text-[#e8dfd1] leading-relaxed max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-[#e8dfd1] leading-relaxed max-w-3xl mx-auto">
             Professional event coverage across all 14 parishes of Jamaica. From Kingston to Portland, Negril to Morant Bay—we've got you covered.
           </p>
         </div>
@@ -143,15 +145,15 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-[#B0DD16] mb-2">14</div>
+              <div className="text-4xl font-bold text-[#BDFF1C] mb-2">14</div>
               <div className="text-gray-600">Parishes Covered</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-[#755f52] mb-2">100%</div>
+              <div className="text-4xl font-bold text-[#755f52] mb-2">Islandwide</div>
               <div className="text-gray-600">Jamaica Coverage</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-[#B0DD16] mb-2">500+</div>
+              <div className="text-4xl font-bold text-[#BDFF1C] mb-2">500+</div>
               <div className="text-gray-600">Events Covered</div>
             </div>
             <div>
@@ -183,10 +185,19 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
               
               {/* Interactive Jamaica Map */}
               <div className="mb-8">
-                <JamaicaLeafletMap 
-                  selectedParish={selectedParish}
-                  onParishClick={(parish) => setSelectedParish(parish === selectedParish ? null : parish)}
-                />
+                <Suspense fallback={
+                  <div className="w-full h-[400px] sm:h-[500px] md:h-[600px] rounded-2xl overflow-hidden border-2 border-[#755f52]/20 shadow-xl bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#755f52] border-t-transparent mx-auto mb-4"></div>
+                      <p className="text-[#755f52] font-medium">Loading map...</p>
+                    </div>
+                  </div>
+                }>
+                  <JamaicaLeafletMap 
+                    selectedParish={selectedParish}
+                    onParishClick={(parish) => setSelectedParish(parish === selectedParish ? null : parish)}
+                  />
+                </Suspense>
               </div>
               
               {/* Parish Buttons arranged geographically */}
@@ -199,7 +210,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
                       onClick={() => setSelectedParish(parish === selectedParish ? null : parish)}
                       className={`min-h-[44px] px-4 sm:px-6 py-2.5 sm:py-3 rounded-full font-bold text-xs sm:text-sm transition-all duration-300 ${
                         selectedParish === parish
-                          ? 'bg-[#B0DD16] text-white shadow-lg scale-105'
+                          ? 'bg-[#BDFF1C] text-white shadow-lg scale-105'
                           : 'bg-white text-[#755f52] border-2 border-[#755f52] hover:bg-[#755f52] hover:text-white hover:scale-105'
                       }`}
                     >
@@ -216,7 +227,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
                       onClick={() => setSelectedParish(parish === selectedParish ? null : parish)}
                       className={`min-h-[44px] px-4 sm:px-6 py-2.5 sm:py-3 rounded-full font-bold text-xs sm:text-sm transition-all duration-300 ${
                         selectedParish === parish
-                          ? 'bg-[#B0DD16] text-white shadow-lg scale-105'
+                          ? 'bg-[#BDFF1C] text-white shadow-lg scale-105'
                           : 'bg-white text-[#755f52] border-2 border-[#755f52] hover:bg-[#755f52] hover:text-white hover:scale-105'
                       }`}
                     >
@@ -228,9 +239,9 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
 
               {/* Selected Parish Details */}
               {selectedData && (
-                <div className="mt-8 p-6 bg-white rounded-2xl border-2 border-[#B0DD16] shadow-xl animate-in fade-in duration-300">
+                <div className="mt-8 p-6 bg-white rounded-2xl border-2 border-[#BDFF1C] shadow-xl animate-in fade-in duration-300">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-[#B0DD16] to-[#9ac514] rounded-xl flex items-center justify-center">
+                    <div className="w-14 h-14 bg-gradient-to-br from-[#BDFF1C] to-[#a5e00f] rounded-xl flex items-center justify-center">
                       <MapPin className="w-8 h-8 text-white" />
                     </div>
                     <div>
@@ -246,7 +257,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
                     <div className="grid sm:grid-cols-2 gap-2">
                       {selectedData.highlights.map((highlight: string, index: number) => (
                         <div key={index} className="flex items-start gap-2">
-                          <CheckCircle2 className="w-5 h-5 text-[#B0DD16] mt-0.5 flex-shrink-0" />
+                          <CheckCircle2 className="w-5 h-5 text-[#BDFF1C] mt-0.5 flex-shrink-0" />
                           <span className="text-sm text-gray-700 font-medium">{highlight}</span>
                         </div>
                       ))}
@@ -268,7 +279,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
           <Card className="mt-8 border-0 shadow-lg">
             <CardContent className="p-8">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-[#B0DD16] rounded-xl flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-[#BDFF1C] rounded-xl flex items-center justify-center flex-shrink-0">
                   <Camera className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -278,7 +289,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
                   <p className="text-gray-700 mb-4">
                     No problem! Our vetted talent network spans the entire island. Whether your event is in a major city or a rural community, we can arrange professional coverage with ECJ's quality guarantee.
                   </p>
-                  <div className="bg-[#f5f1eb] p-4 rounded-lg border-l-4 border-[#B0DD16]">
+                  <div className="bg-[#f5f1eb] p-4 rounded-lg border-l-4 border-[#BDFF1C]">
                     <p className="text-sm text-gray-700">
                       <span className="font-bold text-[#755f52]">Travel & Coverage:</span> We handle all logistics for events requiring talent to travel. Our managed service model means you don't need to worry about transportation, accommodation, or coordination—we take care of it all.
                     </p>
@@ -299,7 +310,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
               </p>
               <Button 
                 size="lg"
-                className="bg-[#B0DD16] hover:bg-[#9ac514] text-white font-bold"
+                className="bg-[#BDFF1C] hover:bg-[#a5e00f] text-white font-bold"
                 onClick={() => onNavigate(user ? 'client-dashboard' : 'signup')}
               >
                 Request Coverage Now

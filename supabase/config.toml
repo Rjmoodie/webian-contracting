@@ -1,0 +1,15 @@
+# Edge Function configuration
+# See: https://supabase.com/docs/guides/functions/function-configuration
+
+# Skip Supabase gateway JWT verification so requests reach our handler.
+# We validate the token ourselves in each route with supabase.auth.getUser(accessToken).
+# Without this, the gateway returns 401 before the request hits the function (you see
+# OPTIONS but no GET in logs). After adding this, redeploy the function so the config applies.
+#
+# Apply to both possible names (Dashboard name vs CLI folder name)
+[functions.make-server-d8ea749c]
+verify_jwt = false
+entrypoint = "./functions/make-server-d8ea749c/index.tsx"
+
+[functions.server]
+verify_jwt = false

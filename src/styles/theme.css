@@ -211,10 +211,16 @@
     line-height: 1.5;
   }
 
-  button {
+  button:not(.header-nav button) {
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
+  }
+  
+  /* Header buttons use smaller, tighter typography */
+  .header-nav button {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.25;
   }
 
   input {

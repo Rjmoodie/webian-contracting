@@ -7,6 +7,14 @@ import * as emailService from "./email-service.tsx";
 
 const app = new Hono();
 
+// Log all incoming requests (before CORS)
+app.use('*', async (c, next) => {
+  const method = c.req.method;
+  const path = c.req.path;
+  console.log(`[EDGE FUNCTION] ${method} ${path} - Request received`);
+  await next();
+});
+
 // Enable logger
 app.use('*', logger(console.log));
 
@@ -91,26 +99,32 @@ app.get("/make-server-d8ea749c/auth/me", async (c) => {
     const accessToken = c.req.header('Authorization')?.split(' ')[1];
     
     if (!accessToken) {
+      console.log("[AUTH/ME] No access token provided");
       return c.json({ error: "No auth token provided" }, 401);
     }
 
+    console.log("[AUTH/ME] Validating token...");
     const { data: { user }, error } = await supabase.auth.getUser(accessToken);
     
     if (error || !user) {
-      console.log("Error getting user in auth/me route:", error);
-      return c.json({ error: "Unauthorized" }, 401);
+      console.log("[AUTH/ME] Error getting user:", error?.message || error);
+      console.log("[AUTH/ME] Error details:", JSON.stringify(error, null, 2));
+      return c.json({ error: "Unauthorized", details: error?.message || "Token validation failed" }, 401);
     }
 
+    console.log("[AUTH/ME] User validated, ID:", user.id);
     const userProfile = await kv.get(`user:${user.id}`);
     
     if (!userProfile) {
-      return c.json({ error: "User profile not found" }, 404);
+      console.log("[AUTH/ME] User profile not found in KV store for user ID:", user.id);
+      return c.json({ error: "User profile not found", userId: user.id }, 404);
     }
 
+    console.log("[AUTH/ME] User profile found, role:", userProfile.role);
     return c.json({ user: userProfile });
   } catch (error) {
-    console.log("Error in auth/me route:", error);
-    return c.json({ error: "Failed to get user" }, 500);
+    console.log("[AUTH/ME] Exception in auth/me route:", error);
+    return c.json({ error: "Failed to get user", details: error?.message || String(error) }, 500);
   }
 });
 
@@ -700,6 +714,156 @@ app.get("/make-server-d8ea749c/admin/talents", async (c) => {
   } catch (error) {
     console.log("Error in get all talents route:", error);
     return c.json({ error: "Failed to get talents" }, 500);
+  }
+});
+
+// Get pending talent applications (Admin/Manager only)
+app.get("/make-server-d8ea749c/admin/talent/pending", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+
+    if (error || !user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const userProfile = await kv.get(`user:${user.id}`);
+    if (userProfile?.role !== 'admin' && userProfile?.role !== 'manager') {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const allTalents = await kv.getByPrefix('talent:');
+    const pending = allTalents.filter((t: any) => t.status === 'pending');
+
+    return c.json({ talents: pending });
+  } catch (error) {
+    console.log("Error in admin/talent/pending:", error);
+    return c.json({ error: "Failed to get pending talents" }, 500);
+  }
+});
+
+// ============ PORTFOLIO ROUTES ============
+
+// Get all portfolio items (public read - no auth required so site portfolio page works)
+app.get("/make-server-d8ea749c/portfolio", async (c) => {
+  try {
+    const items = await kv.getByPrefix('portfolio:');
+    return c.json({ items });
+  } catch (error) {
+    console.log("Error in GET /portfolio:", error);
+    return c.json({ error: "Failed to get portfolio" }, 500);
+  }
+});
+
+// Create portfolio item (admin/manager only)
+app.post("/make-server-d8ea749c/portfolio", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+
+    if (error || !user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const userProfile = await kv.get(`user:${user.id}`);
+    if (userProfile?.role !== 'admin' && userProfile?.role !== 'manager') {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const body = await c.req.json();
+    const id = `portfolio-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const item = {
+      id,
+      title: body.title ?? '',
+      description: body.description ?? '',
+      category: body.category ?? 'photography',
+      mediaUrl: body.mediaUrl ?? '',
+      thumbnailUrl: body.thumbnailUrl ?? '',
+      eventType: body.eventType ?? '',
+      parish: body.parish ?? '',
+      date: body.date ?? '',
+      talentName: body.talentName ?? '',
+      featured: !!body.featured,
+    };
+
+    await kv.set(`portfolio:${id}`, item);
+    return c.json({ item });
+  } catch (error) {
+    console.log("Error in POST /portfolio:", error);
+    return c.json({ error: "Failed to create portfolio item" }, 500);
+  }
+});
+
+// Update portfolio item (admin/manager only)
+app.put("/make-server-d8ea749c/portfolio/:id", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+
+    if (error || !user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const userProfile = await kv.get(`user:${user.id}`);
+    if (userProfile?.role !== 'admin' && userProfile?.role !== 'manager') {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const id = c.req.param('id');
+    const existing = await kv.get(`portfolio:${id}`);
+    if (!existing) {
+      return c.json({ error: "Portfolio item not found" }, 404);
+    }
+
+    const body = await c.req.json();
+    const item = {
+      id,
+      title: body.title ?? existing.title,
+      description: body.description ?? existing.description,
+      category: body.category ?? existing.category,
+      mediaUrl: body.mediaUrl ?? existing.mediaUrl,
+      thumbnailUrl: body.thumbnailUrl ?? existing.thumbnailUrl,
+      eventType: body.eventType ?? existing.eventType,
+      parish: body.parish ?? existing.parish,
+      date: body.date ?? existing.date,
+      talentName: body.talentName ?? existing.talentName,
+      featured: body.featured !== undefined ? !!body.featured : existing.featured,
+    };
+
+    await kv.set(`portfolio:${id}`, item);
+    return c.json({ item });
+  } catch (error) {
+    console.log("Error in PUT /portfolio/:id:", error);
+    return c.json({ error: "Failed to update portfolio item" }, 500);
+  }
+});
+
+// Delete portfolio item (admin/manager only)
+app.delete("/make-server-d8ea749c/portfolio/:id", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+
+    if (error || !user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const userProfile = await kv.get(`user:${user.id}`);
+    if (userProfile?.role !== 'admin' && userProfile?.role !== 'manager') {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const id = c.req.param('id');
+    const existing = await kv.get(`portfolio:${id}`);
+    if (!existing) {
+      return c.json({ error: "Portfolio item not found" }, 404);
+    }
+
+    await kv.del(`portfolio:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.log("Error in DELETE /portfolio/:id:", error);
+    return c.json({ error: "Failed to delete portfolio item" }, 500);
   }
 });
 

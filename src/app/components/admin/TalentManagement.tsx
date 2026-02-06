@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { Users } from 'lucide-react';
+import { getFreshToken } from '/utils/supabase/client';
 
 interface TalentManagementProps {
   serverUrl: string;
@@ -13,16 +14,40 @@ export default function TalentManagement({ serverUrl, accessToken }: TalentManag
   const [talents, setTalents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentToken, setCurrentToken] = useState<string>(accessToken);
 
   useEffect(() => {
     fetchTalents();
   }, []);
 
+  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
+    const token = await getFreshToken() || currentToken || accessToken;
+    if (!token) {
+      console.warn('[TalentManagement] No access token available');
+      return null;
+    }
+    if (token !== currentToken) setCurrentToken(token);
+
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...options.headers, 'Authorization': `Bearer ${token}` },
+    });
+
+    if (response.status === 401) {
+      console.warn('[TalentManagement] Backend returned 401');
+      return null;
+    }
+    return response;
+  };
+
   const fetchTalents = async () => {
     try {
-      const response = await fetch(`${serverUrl}/admin/talents`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-      });
+      const response = await makeAuthenticatedRequest(`${serverUrl}/admin/talents`);
+
+      if (!response) {
+        setLoading(false);
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();

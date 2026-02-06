@@ -2,6 +2,24 @@
 @import './tailwind.css';
 @import './theme.css';
 
+/* Skip link for accessibility and SEO */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0.5rem;
+  z-index: 9999;
+  padding: 0.75rem 1rem;
+  background: #755f52;
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0.5rem;
+}
+
 /* Premium Typography Enhancements */
 body {
   font-feature-settings: "kern" 1, "liga" 1;
@@ -59,7 +77,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .gradient-premium-green {
-  background: linear-gradient(135deg, #B0DD16 0%, #9ac514 50%, #B0DD16 100%);
+  background: linear-gradient(135deg, #BDFF1C 0%, #a5e00f 50%, #BDFF1C 100%);
 }
 
 .gradient-premium-gold {
@@ -188,34 +206,81 @@ input, textarea, select {
   max-width: 100%;
 }
 
-/* Header buttons - Force 32px height, override Button component min-height */
-/* Target all buttons in fixed navigation headers */
-nav[class*="fixed"] [data-slot="button"],
-nav[class*="fixed"] button {
-  max-height: 64px;
+/* Header Navigation - Clean, scoped button styling */
+/* Critical: allow dropdown to show outside the fixed header */
+.header-nav {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
 }
 
-/* Specifically override buttons with !h-8 class in fixed nav */
-nav[class*="fixed"] [data-slot="button"][class*="!h-8"],
-nav[class*="fixed"] button[class*="!h-8"] {
-  height: 32px !important;
-  min-height: 0 !important;
-  max-height: 32px !important;
-  line-height: 1.2 !important;
+/* Ensure all child containers also allow overflow for dropdowns */
+.header-nav > div,
+.header-nav > div > div,
+.header-nav > * {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
 }
 
-/* Override Button component's min-height for header buttons */
-nav[class*="fixed"] [data-slot="button"][class*="!min-h-0"],
-nav[class*="fixed"] button[class*="!min-h-0"] {
-  min-height: 0 !important;
+/* Ensure dropdown portals can render above header */
+.header-nav [data-radix-portal],
+.header-nav [data-radix-popper-content-wrapper],
+.header-nav [data-radix-select-content],
+.header-nav [data-radix-dropdown-menu-content] {
+  z-index: 9999 !important;
+}
+
+/* CRITICAL: Zero vertical padding + line-height: 1 prevents text overflow */
+/* Exclude burger menu button from these rules */
+.header-nav button:not(.burger-menu-button),
+.header-nav [data-slot="button"] {
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  line-height: 1 !important; /* leading-none - prevents glyph overflow */
+  padding-top: 0 !important; /* Override Button component's py-2.5 */
+  padding-bottom: 0 !important; /* Override Button component's py-2.5 */
+  /* Ensure content aligns properly */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Allow buttons to expand to fit content on wider screens */
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Burger menu button - hidden on desktop */
+.header-nav .burger-menu-button {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .header-nav .burger-menu-button {
+    display: none !important;
+  }
+}
+
+/* Ensure all text inside header buttons uses leading-none */
+.header-nav button *,
+.header-nav [data-slot="button"] * {
+  line-height: 1;
+}
+
+/* Header navigation icons - consistent sizing */
+.header-nav button svg,
+.header-nav [data-slot="button"] svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 /* Touch-friendly buttons on mobile - Exclude header buttons */
 @media (max-width: 768px) {
-  button:not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]):not([class*="!h-8"]), 
-  a[role="button"]:not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]):not([class*="!h-8"]), 
-  [role="button"]:not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]):not([class*="!h-8"]), 
-  .btn:not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]):not([class*="!h-8"]) {
+  button:not(.header-nav button):not(.header-nav [data-slot="button"]), 
+  a[role="button"]:not(.header-nav a), 
+  [role="button"]:not(.header-nav [role="button"]), 
+  .btn:not(.header-nav .btn) {
     min-height: 44px;
     min-width: 44px;
   }

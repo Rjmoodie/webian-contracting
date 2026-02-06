@@ -4,8 +4,11 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Card, CardHeader, CardContent } from '@/app/components/ui/card';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import JamaicaLeafletMap from '@/app/components/JamaicaLeafletMap';
-import { useState } from 'react';
+import ECJLogo from '@/app/components/ECJLogo';
+import { useState, lazy, Suspense } from 'react';
+
+// Lazy load the map component to avoid SSR issues
+const JamaicaLeafletMap = lazy(() => import('@/app/components/JamaicaLeafletMap'));
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -24,7 +27,6 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f1eb] via-[#ebe4d8] to-[#e8dfd1] scroll-smooth">
-      {/* Navigation */}
       <Navigation
         user={user}
         onNavigate={onNavigate}
@@ -33,15 +35,15 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
         showNavLinks={true}
       />
       {/* Spacer for fixed header */}
-      <div className="h-16" />
+      <div className="h-24" />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden" aria-label="Hero">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <ImageWithFallback
             src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=1920&q=80"
-            alt="Event Coverage"
+            alt="Professional event coverage in Jamaica - photography, videography, and audio services"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#755f52] via-[#755f52cc] to-[#755f5299]"></div>
@@ -49,29 +51,29 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
           <div className="max-w-3xl">
-            <Badge className="bg-[#B0DD16] text-white mb-4 text-sm px-4 py-1.5 font-semibold">{/* Reduced from mb-6 */}
-              Jamaica's Premier Event Coverage Platform
+            <Badge className="bg-[#BDFF1C] text-white mb-4 text-sm px-4 py-1.5 font-semibold">{/* Reduced from mb-6 */}
+              Professional Event Coverage Platform
             </Badge>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 leading-tight">
               Professional Event Coverage.
-              <span className="block text-[#c9a882]">Guaranteed Excellence.</span>
+              <span className="block text-[#c9a882]">Quality Service.</span>
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-[#e8dfd1] mb-6 leading-relaxed">
-              ECJ-vetted professionals deliver broadcast-grade photography, videography, and audio services islandwide with guaranteed on-time delivery.
+              ECJ-vetted professionals deliver high-quality photography, videography, and audio services across Jamaica with reliable delivery.
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6">
               <Button 
                 size="lg" 
-                className="button-glow text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 gradient-premium-green text-white font-bold rounded-xl shadow-premium-xl hover:shadow-premium-xl hover:scale-105 transition-all w-full sm:w-auto"
+                className="button-glow text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 gradient-premium-green text-white font-bold rounded-xl shadow-premium-xl hover:shadow-premium-xl hover:scale-105 transition-all w-full sm:w-auto min-h-[48px] sm:min-h-0 sm:h-10 whitespace-nowrap"
                 onClick={() => onNavigate(user ? 'client-dashboard' : 'signup')}
               >
                 Request Coverage
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 sm:ml-2 shrink-0" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline"
-                className="text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 glass text-white border-2 border-white/30 hover:bg-white hover:text-[#755f52] font-semibold rounded-xl w-full sm:w-auto hover:border-white transition-all"
+                className="text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 glass text-white border-2 border-white/30 hover:bg-white hover:text-[#755f52] font-semibold rounded-xl w-full sm:w-auto hover:border-white transition-all min-h-[48px] sm:min-h-0 sm:h-10 whitespace-nowrap"
                 onClick={() => onNavigate('services')}
               >
                 Browse Services
@@ -81,15 +83,15 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             {/* Trust Indicators */}
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-8 sm:mt-12">
               <div className="flex items-center gap-2 text-white">
-                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-[#B0DD16] fill-current" />
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-[#BDFF1C] fill-current" />
                 <span className="text-sm sm:text-base font-semibold">5.0 Average Rating</span>
               </div>
               <div className="flex items-center gap-2 text-white">
-                <Award className="w-4 h-4 sm:w-5 sm:h-5 text-[#B0DD16]" />
-                <span className="text-sm sm:text-base font-semibold">100% Vetted</span>
+                <Award className="w-4 h-4 sm:w-5 sm:h-5 text-[#BDFF1C]" />
+                <span className="text-sm sm:text-base font-semibold">Vetted Professionals</span>
               </div>
               <div className="flex items-center gap-2 text-white">
-                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#B0DD16]" />
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#BDFF1C]" />
                 <span className="text-sm sm:text-base font-semibold">All 14 Parishes</span>
               </div>
             </div>
@@ -103,7 +105,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             <div className="text-center group">
               <div className="w-14 h-14 gradient-premium text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-premium hover:shadow-premium-lg">{/* Reduced size and mb */}
-                <Shield className="w-7 h-7 text-[#B0DD16]" />{/* Reduced from w-8 h-8 */}
+                <Shield className="w-7 h-7 text-[#BDFF1C]" />{/* Reduced from w-8 h-8 */}
               </div>
               <h3 className="font-bold text-[#755f52] text-base mb-1">{/* Reduced from text-lg */}
                 Vetted Crews
@@ -112,7 +114,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
             <div className="text-center group">
               <div className="w-14 h-14 gradient-premium text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-premium hover:shadow-premium-lg">
-                <CheckCircle2 className="w-7 h-7 text-[#B0DD16]" />
+                <CheckCircle2 className="w-7 h-7 text-[#BDFF1C]" />
               </div>
               <h3 className="font-bold text-[#755f52] text-base mb-1">
                 Protected
@@ -121,7 +123,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
             <div className="text-center group">
               <div className="w-14 h-14 gradient-premium text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-premium hover:shadow-premium-lg">
-                <MapPin className="w-7 h-7 text-[#B0DD16]" />
+                <MapPin className="w-7 h-7 text-[#BDFF1C]" />
               </div>
               <h3 className="font-bold text-[#755f52] text-base mb-1">
                 Islandwide
@@ -130,12 +132,12 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
             <div className="text-center group">
               <div className="w-14 h-14 gradient-premium text-white rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-premium hover:shadow-premium-lg">
-                <Clock className="w-7 h-7 text-[#B0DD16]" />
+                <Clock className="w-7 h-7 text-[#BDFF1C]" />
               </div>
               <h3 className="font-bold text-[#755f52] text-base mb-1">
                 On-Time
               </h3>
-              <p className="text-xs text-gray-600">Guaranteed delivery</p>
+              <p className="text-xs text-gray-600">Reliable delivery</p>
             </div>
           </div>
         </div>
@@ -145,12 +147,12 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       <section className="py-12 sm:py-16 px-4 bg-[#755f52]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8 sm:mb-12">
-            <Badge className="bg-[#B0DD16] text-white mb-3 px-3 sm:px-4 py-1.5 font-semibold text-xs sm:text-sm">
+            <Badge className="bg-[#BDFF1C] text-white mb-3 px-3 sm:px-4 py-1.5 font-semibold text-xs sm:text-sm">
               The ECJ Difference
             </Badge>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 px-4">Our Service Guarantee</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 px-4">Our Service Commitment</h2>
             <p className="text-base sm:text-lg text-[#e8dfd1] max-w-3xl mx-auto px-4">
-              Every service is backed by our commitment to excellence and delivered by vetted professionals
+              Every service is backed by our commitment to quality and delivered by vetted professionals
             </p>
           </div>
           
@@ -203,10 +205,10 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                   Pro Equipment
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  Broadcast-grade cameras, lenses, and audio gear
+                  Professional-grade cameras, lenses, and audio gear
                 </p>
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  ECJ mandates professional-grade equipment standards for all services. From 4K cameras to wireless audio systems, we ensure our teams arrive with reliable, broadcast-quality gear that performs flawlessly in Jamaica's tropical climate and diverse venues.
+                  ECJ requires professional-grade equipment standards for all services. From 4K cameras to wireless audio systems, our teams typically arrive with reliable, high-quality gear designed to perform well in Jamaica's tropical climate and diverse venues.
                 </p>
               </div>
             </div>
@@ -231,10 +233,10 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                   Backup Systems
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  Redundant coverage and equipment for peace of mind
+                  Backup systems and redundant coverage when available
                 </p>
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Every ECJ assignment includes backup equipment and redundant storage protocols. We capture your event on multiple devices simultaneously and implement immediate cloud backup, ensuring your memories are protected even in challenging field conditions across the island.
+                  ECJ assignments typically include backup equipment and redundant storage protocols. We aim to capture your event on multiple devices and implement cloud backup when possible, helping protect your memories in various field conditions across the island.
                 </p>
               </div>
             </div>
@@ -259,10 +261,10 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                   On-Time Delivery
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  Guaranteed turnaround times with quality assurance
+                  Reliable turnaround times with quality assurance
                 </p>
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  ECJ commits to specific delivery timelines for every service. Our project management system tracks progress, ensures quality control reviews, and guarantees your files arrive on schedule—whether you're in Kingston or the furthest rural parish. Late delivery? We make it right.
+                  ECJ works to meet agreed delivery timelines for every service. Our project management system tracks progress, includes quality control reviews, and aims to deliver your files on schedule—whether you're in Kingston or rural parishes. We strive to address any delivery concerns promptly.
                 </p>
               </div>
             </div>
@@ -279,7 +281,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </Badge>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[#755f52] mb-3 px-4">ECJ Coverage Services</h2>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto px-4">
-              Broadcast-grade coverage delivered by vetted professionals
+              High-quality coverage delivered by vetted professionals
             </p>
           </div>
           
@@ -433,10 +435,19 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
           </div>
           
           {/* Interactive Leaflet Map */}
-          <JamaicaLeafletMap 
-            selectedParish={selectedParish}
-            onParishClick={(parish) => setSelectedParish(parish === selectedParish ? null : parish)}
-          />
+          <Suspense fallback={
+            <div className="w-full h-[400px] sm:h-[500px] md:h-[600px] rounded-2xl overflow-hidden border-2 border-[#755f52]/20 shadow-xl bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#755f52] border-t-transparent mx-auto mb-4"></div>
+                <p className="text-[#755f52] font-medium">Loading map...</p>
+              </div>
+            </div>
+          }>
+            <JamaicaLeafletMap 
+              selectedParish={selectedParish}
+              onParishClick={(parish) => setSelectedParish(parish === selectedParish ? null : parish)}
+            />
+          </Suspense>
 
           {/* Parish Info Display */}
           {selectedParish && (
@@ -514,16 +525,16 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
             <Button 
               size="lg" 
-              className="button-glow text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 gradient-premium-green text-white font-bold rounded-xl shadow-premium-xl hover:shadow-premium-xl hover:scale-105 transition-all w-full sm:w-auto"
+              className="button-glow text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 gradient-premium-green text-white font-bold rounded-xl shadow-premium-xl hover:shadow-premium-xl hover:scale-105 transition-all w-full sm:w-auto min-h-[48px] sm:min-h-0 sm:h-10 whitespace-nowrap"
               onClick={() => onNavigate(user ? 'client-dashboard' : 'signup')}
             >
               Request Coverage Now
-              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 sm:ml-2 shrink-0" />
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 glass text-white border-2 border-white/30 hover:bg-white hover:text-[#755f52] font-semibold rounded-xl w-full sm:w-auto hover:border-white transition-all"
+              className="text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 glass text-white border-2 border-white/30 hover:bg-white hover:text-[#755f52] font-semibold rounded-xl w-full sm:w-auto hover:border-white transition-all min-h-[48px] sm:min-h-0 sm:h-10 whitespace-nowrap"
               onClick={() => onNavigate('services')}
             >
               View All Services
@@ -537,14 +548,11 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
             <div>
-              <div className="flex items-center gap-2 mb-3">{/* Reduced from mb-4 */}
-                <div className="w-8 h-8 bg-[#c9a882] rounded-lg flex items-center justify-center">
-                  <Camera className="w-5 h-5 text-[#755f52]" />
-                </div>
-                <h3 className="text-white text-lg font-bold">ECJ</h3>
+              <div className="mb-3">
+                <ECJLogo size="md" className="flex-shrink-0" />
               </div>
               <p className="text-sm leading-relaxed">
-                Professional event coverage across all 14 parishes of Jamaica with guaranteed excellence.
+                Professional event coverage across all 14 parishes of Jamaica with a commitment to quality service.
               </p>
             </div>
             

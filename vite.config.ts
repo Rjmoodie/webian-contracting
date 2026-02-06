@@ -20,13 +20,19 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
-    minify: 'esbuild', // Faster and included by default
+    minify: 'esbuild',
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+        // Single vendor chunk: React + React-DOM + all Radix in one chunk so
+        // there is only one React instance. Prevents "r is not a function" on
+        // Hostinger (and any host) when chunks load in different order or cache.
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-dom/') || id.includes('react-dom\\')) return 'vendor'
+            if ((id.includes('/react/') || id.includes('\\react\\')) && !id.includes('react-')) return 'vendor'
+            if (id.includes('@radix-ui/')) return 'vendor'
+          }
+          return undefined
         },
       },
     },

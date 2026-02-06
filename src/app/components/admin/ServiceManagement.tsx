@@ -7,6 +7,7 @@ import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Plus, Edit, Pause, Play, Eye, Send, CheckCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { getFreshToken } from '/utils/supabase/client';
 
 interface ServiceManagementProps {
   serverUrl: string;
@@ -20,16 +21,40 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
   const [showEditor, setShowEditor] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [currentToken, setCurrentToken] = useState<string>(accessToken);
 
   useEffect(() => {
     fetchServices();
   }, []);
 
+  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
+    const token = await getFreshToken() || currentToken || accessToken;
+    if (!token) {
+      console.warn('[ServiceManagement] No access token available');
+      return null;
+    }
+    if (token !== currentToken) setCurrentToken(token);
+
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...options.headers, 'Authorization': `Bearer ${token}` },
+    });
+
+    if (response.status === 401) {
+      console.warn('[ServiceManagement] Backend returned 401');
+      return null;
+    }
+    return response;
+  };
+
   const fetchServices = async () => {
     try {
-      const response = await fetch(`${serverUrl}/admin/services`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-      });
+      const response = await makeAuthenticatedRequest(`${serverUrl}/admin/services`);
+
+      if (!response) {
+        setLoading(false);
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -77,14 +102,18 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
 
       const method = editingService.id ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await makeAuthenticatedRequest(url, {
         method,
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(editingService),
       });
+
+      if (!response) {
+        toast.error('Authentication failed. Please try again.');
+        return;
+      }
 
       if (response.ok) {
         toast.success(editingService.id ? 'Service updated' : 'Service created');
@@ -103,10 +132,14 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
 
   const handleSubmitForApproval = async (serviceId: string) => {
     try {
-      const response = await fetch(`${serverUrl}/services/${serviceId}/submit-for-approval`, {
+      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}/submit-for-approval`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
+
+      if (!response) {
+        toast.error('Authentication failed. Please try again.');
+        return;
+      }
 
       if (response.ok) {
         toast.success('Service submitted for approval');
@@ -125,10 +158,14 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
     if (!confirm('This will make the service visible to clients. Continue?')) return;
 
     try {
-      const response = await fetch(`${serverUrl}/services/${serviceId}/publish`, {
+      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}/publish`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
+
+      if (!response) {
+        toast.error('Authentication failed. Please try again.');
+        return;
+      }
 
       if (response.ok) {
         toast.success('Service published successfully! Now visible to clients.');
@@ -145,10 +182,14 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
 
   const handlePause = async (serviceId: string) => {
     try {
-      const response = await fetch(`${serverUrl}/services/${serviceId}/pause`, {
+      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}/pause`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
       });
+
+      if (!response) {
+        toast.error('Authentication failed. Please try again.');
+        return;
+      }
 
       if (response.ok) {
         toast.success('Service paused (hidden from clients)');
@@ -201,10 +242,10 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
         </div>
         {userRole === 'admin' && (
           <Button 
-            className="button-glow gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto"
+            className="button-glow gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap"
             onClick={handleCreateNew}
           >
-            <Plus className="w-4 h-4 sm:mr-2" />
+            <Plus className="w-4 h-4 sm:mr-2 shrink-0" />
             Create Service
           </Button>
         )}
@@ -301,9 +342,10 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
                             variant="outline" 
                             size="sm" 
                             onClick={() => handleEdit(service)}
-                            className="min-h-[40px] sm:h-8 min-w-[40px] sm:w-auto"
+                            className="min-h-[40px] sm:min-h-0 sm:h-8 min-w-[40px] sm:min-w-0 sm:w-auto"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-4 h-4 shrink-0" />
+                            <span className="hidden sm:inline ml-2">Edit</span>
                           </Button>
 
                           {service.status === 'draft' && (
@@ -311,20 +353,21 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
                               variant="outline" 
                               size="sm" 
                               onClick={() => handleSubmitForApproval(service.id)}
-                              className="min-h-[40px] sm:h-8 whitespace-nowrap"
+                              className="min-h-[40px] sm:min-h-0 sm:h-8 whitespace-nowrap"
                             >
-                              <Send className="w-4 h-4 sm:mr-1" />
+                              <Send className="w-4 h-4 sm:mr-1 shrink-0" />
                               <span className="hidden sm:inline">Submit</span>
+                              <span className="sm:hidden">Submit</span>
                             </Button>
                           )}
 
                           {service.status === 'approved' && (
                             <Button 
                               size="sm" 
-                              className="button-glow min-h-[40px] sm:h-8 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
+                              className="button-glow min-h-[40px] sm:min-h-0 sm:h-8 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
                               onClick={() => handlePublish(service.id)}
                             >
-                              <Play className="w-4 h-4 sm:mr-1" />
+                              <Play className="w-4 h-4 sm:mr-1 shrink-0" />
                               <span className="hidden sm:inline">Publish</span>
                               <span className="sm:hidden">Publish</span>
                             </Button>
@@ -335,9 +378,9 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
                               variant="outline" 
                               size="sm" 
                               onClick={() => handlePause(service.id)}
-                              className="min-h-[40px] sm:h-8 whitespace-nowrap"
+                              className="min-h-[40px] sm:min-h-0 sm:h-8 whitespace-nowrap"
                             >
-                              <Pause className="w-4 h-4 sm:mr-1" />
+                              <Pause className="w-4 h-4 sm:mr-1 shrink-0" />
                               <span className="hidden sm:inline">Pause</span>
                               <span className="sm:hidden">Pause</span>
                             </Button>
@@ -403,21 +446,22 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
         <h2 className="text-2xl font-bold">
           {service.id ? 'Edit Service' : 'Create New Service'}
         </h2>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button 
             variant="outline" 
             onClick={onCancel}
-            className="min-h-[44px] sm:h-10 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all"
+            className="flex-1 sm:flex-none min-h-[44px] sm:min-h-0 sm:h-10 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all whitespace-nowrap"
           >
-            <X className="w-4 h-4 mr-2" />
+            <X className="w-4 h-4 sm:mr-2 shrink-0" />
             Cancel
           </Button>
           <Button 
             onClick={onSave}
-            className="button-glow min-h-[44px] sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all"
+            className="button-glow flex-1 sm:flex-none min-h-[44px] sm:min-h-0 sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
           >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Save Service
+            <CheckCircle className="w-4 h-4 sm:mr-2 shrink-0" />
+            <span className="hidden sm:inline">Save Service</span>
+            <span className="sm:hidden">Save</span>
           </Button>
         </div>
       </div>
@@ -490,7 +534,7 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
                 type="button" 
                 onClick={addTag}
                 size="sm"
-                className="min-h-[40px] sm:h-8"
+                className="min-h-[40px] sm:min-h-0 sm:h-8 whitespace-nowrap shrink-0"
               >
                 Add
               </Button>
@@ -524,7 +568,7 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
                 type="button" 
                 onClick={addDeliverable}
                 size="sm"
-                className="min-h-[40px] sm:h-8"
+                className="min-h-[40px] sm:min-h-0 sm:h-8 whitespace-nowrap shrink-0"
               >
                 Add
               </Button>
@@ -537,9 +581,9 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
                     variant="ghost" 
                     size="sm" 
                     onClick={() => removeDeliverable(i)}
-                    className="min-h-[40px] min-w-[40px] sm:h-8 sm:w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4 shrink-0" />
                   </Button>
                 </li>
               ))}

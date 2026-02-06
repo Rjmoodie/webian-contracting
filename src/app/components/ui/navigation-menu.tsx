@@ -1,168 +1,305 @@
-import * as React from "react";
-import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
-import { cva } from "class-variance-authority";
-import { ChevronDownIcon } from "lucide-react";
+import React, { useState } from "react";
+import { Camera, Menu, X, LogOut } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import ECJLogo from "@/app/components/ECJLogo";
 
-import { cn } from "./utils";
+interface NavigationProps {
+  user?: any;
+  onNavigate: (page: string) => void;
+  onLogout?: () => void;
+  variant?: "public" | "dashboard";
+  portalLabel?: string;
+  showBrowseServices?: boolean;
+  showNavLinks?: boolean;
+}
 
-function NavigationMenu({
-  className,
-  children,
-  viewport = true,
-  ...props
-}: React.ComponentProps<typeof NavigationMenuPrimitive.Root> & {
-  viewport?: boolean;
-}) {
+function UserGreeting({ user }: { user: { name: string } }) {
   return (
-    <NavigationMenuPrimitive.Root
-      data-slot="navigation-menu"
-      data-viewport={viewport}
-      className={cn(
-        "group/navigation-menu relative flex max-w-max flex-1 items-center justify-center",
-        className,
-      )}
-      {...props}
+    <span
+      title={`Hi, ${user.name}`}
+      className="hidden lg:inline-flex items-center h-9 text-sm font-medium text-gray-600 whitespace-nowrap leading-none max-w-[16rem] truncate"
     >
-      {children}
-      {viewport && <NavigationMenuViewport />}
-    </NavigationMenuPrimitive.Root>
+      Hi, {user.name}
+    </span>
   );
 }
 
-function NavigationMenuList({
-  className,
-  ...props
-}: React.ComponentProps<typeof NavigationMenuPrimitive.List>) {
-  return (
-    <NavigationMenuPrimitive.List
-      data-slot="navigation-menu-list"
-      className={cn(
-        "group flex flex-1 list-none items-center justify-center gap-1",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function NavigationMenuItem({
-  className,
-  ...props
-}: React.ComponentProps<typeof NavigationMenuPrimitive.Item>) {
-  return (
-    <NavigationMenuPrimitive.Item
-      data-slot="navigation-menu-item"
-      className={cn("relative", className)}
-      {...props}
-    />
-  );
-}
-
-const navigationMenuTriggerStyle = cva(
-  "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=open]:hover:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:focus:bg-accent data-[state=open]:bg-accent/50 focus-visible:ring-ring/50 outline-none transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1",
-);
-
-function NavigationMenuTrigger({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof NavigationMenuPrimitive.Trigger>) {
-  return (
-    <NavigationMenuPrimitive.Trigger
-      data-slot="navigation-menu-trigger"
-      className={cn(navigationMenuTriggerStyle(), "group", className)}
-      {...props}
-    >
-      {children}{" "}
-      <ChevronDownIcon
-        className="relative top-[1px] ml-1 size-3 transition duration-300 group-data-[state=open]:rotate-180"
-        aria-hidden="true"
-      />
-    </NavigationMenuPrimitive.Trigger>
-  );
-}
-
-function NavigationMenuContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof NavigationMenuPrimitive.Content>) {
-  return (
-    <NavigationMenuPrimitive.Content
-      data-slot="navigation-menu-content"
-      className={cn(
-        "data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 top-0 left-0 w-full p-2 pr-2.5 md:absolute md:w-auto",
-        "group-data-[viewport=false]/navigation-menu:bg-popover group-data-[viewport=false]/navigation-menu:text-popover-foreground group-data-[viewport=false]/navigation-menu:data-[state=open]:animate-in group-data-[viewport=false]/navigation-menu:data-[state=closed]:animate-out group-data-[viewport=false]/navigation-menu:data-[state=closed]:zoom-out-95 group-data-[viewport=false]/navigation-menu:data-[state=open]:zoom-in-95 group-data-[viewport=false]/navigation-menu:data-[state=open]:fade-in-0 group-data-[viewport=false]/navigation-menu:data-[state=closed]:fade-out-0 group-data-[viewport=false]/navigation-menu:top-full group-data-[viewport=false]/navigation-menu:mt-1.5 group-data-[viewport=false]/navigation-menu:overflow-hidden group-data-[viewport=false]/navigation-menu:rounded-md group-data-[viewport=false]/navigation-menu:border group-data-[viewport=false]/navigation-menu:shadow group-data-[viewport=false]/navigation-menu:duration-200 **:data-[slot=navigation-menu-link]:focus:ring-0 **:data-[slot=navigation-menu-link]:focus:outline-none",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function NavigationMenuViewport({
-  className,
-  ...props
-}: React.ComponentProps<typeof NavigationMenuPrimitive.Viewport>) {
+function Logo({ onClick, isPublic }: { onClick: () => void; isPublic: boolean }) {
   return (
     <div
-      className={cn(
-        "absolute top-full left-0 isolate z-50 flex justify-center",
-      )}
+      onClick={onClick}
+      className="flex items-center cursor-pointer shrink-0"
+      role="link"
+      aria-label="Event Coverage Jamaica – Home"
     >
-      <NavigationMenuPrimitive.Viewport
-        data-slot="navigation-menu-viewport"
-        className={cn(
-          "origin-top-center bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border shadow md:w-[var(--radix-navigation-menu-viewport-width)]",
-          className,
-        )}
-        {...props}
-      />
+      <ECJLogo size="xl" className="drop-shadow-sm max-h-[44px] w-auto" />
     </div>
   );
 }
 
-function NavigationMenuLink({
-  className,
-  ...props
-}: React.ComponentProps<typeof NavigationMenuPrimitive.Link>) {
+function PublicLinks({ onNavigate }: { onNavigate: (page: string) => void }) {
   return (
-    <NavigationMenuPrimitive.Link
-      data-slot="navigation-menu-link"
-      className={cn(
-        "data-[active=true]:focus:bg-accent data-[active=true]:hover:bg-accent data-[active=true]:bg-accent/50 data-[active=true]:text-accent-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus-visible:ring-ring/50 [&_svg:not([class*='text-'])]:text-muted-foreground flex flex-col gap-1 rounded-sm p-2 text-sm transition-all outline-none focus-visible:ring-[3px] focus-visible:outline-1 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
-      {...props}
-    />
+    <div className="hidden xl:flex items-center gap-6 shrink-0">
+      <button
+        onClick={() => onNavigate("services")}
+        className="inline-flex items-center h-9 leading-none text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap"
+      >
+        Services
+      </button>
+      <button
+        onClick={() => {}}
+        className="inline-flex items-center h-9 leading-none text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap"
+      >
+        How It Works
+      </button>
+      <button
+        onClick={() => {}}
+        className="inline-flex items-center h-9 leading-none text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap"
+      >
+        Coverage
+      </button>
+    </div>
   );
 }
 
-function NavigationMenuIndicator({
-  className,
-  ...props
-}: React.ComponentProps<typeof NavigationMenuPrimitive.Indicator>) {
+export default function Navigation({
+  user,
+  onNavigate,
+  onLogout,
+  variant = "public",
+  portalLabel,
+  showBrowseServices = false,
+  showNavLinks = true,
+}: NavigationProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isPublic = variant === "public";
+
+  const navClass = isPublic
+    ? "bg-[#755f52] fixed top-0 left-0 w-full z-50 shadow-md header-nav"
+    : "bg-white fixed top-0 left-0 w-full z-50 border-b border-gray-200 shadow-sm header-nav";
+
+  const handleDashboardClick = () => {
+    if (user?.role === "client") onNavigate("client-dashboard");
+    else if (user?.role === "talent") onNavigate("talent-dashboard");
+    else if (user?.role === "admin" || user?.role === "manager")
+      onNavigate("admin-dashboard");
+    setIsMenuOpen(false);
+  };
+
   return (
-    <NavigationMenuPrimitive.Indicator
-      data-slot="navigation-menu-indicator"
-      className={cn(
-        "data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:fade-in top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden",
-        className,
-      )}
-      {...props}
-    >
-      <div className="bg-border relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm shadow-md" />
-    </NavigationMenuPrimitive.Indicator>
+    <nav className={navClass}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* IMPORTANT: relative wrapper so dropdown can be absolute and never clipped */}
+        <div className="relative">
+          {/* Main Header Row (grid = more stable than flex at awkward widths) */}
+          <div className="h-16 grid grid-cols-[1fr_auto] items-center gap-3">
+            {/* LEFT */}
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <Logo onClick={() => onNavigate("home")} isPublic={isPublic} />
+              {isPublic && showNavLinks && <PublicLinks onNavigate={onNavigate} />}
+
+              {!isPublic && portalLabel && (
+                <span className="hidden md:inline-flex text-sm sm:text-base text-gray-600 font-medium whitespace-nowrap">
+                  {portalLabel}
+                </span>
+              )}
+            </div>
+
+            {/* RIGHT */}
+            <div className="flex items-center gap-2 sm:gap-3 justify-end">
+              {/* Greeting only on lg+ to avoid any collisions */}
+              {!isPublic && user && <UserGreeting user={user} />}
+
+              {/* Desktop actions (only on lg+ for stability) */}
+              <div className="hidden lg:flex items-center gap-3">
+                {user ? (
+                  <>
+                    {showBrowseServices && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-700 font-medium whitespace-nowrap"
+                        onClick={() => onNavigate("services")}
+                      >
+                        Browse Services
+                      </Button>
+                    )}
+
+                    {isPublic && (
+                      <button
+                        className="inline-flex items-center h-9 text-sm font-medium leading-none whitespace-nowrap text-white hover:text-[#c9a882] transition"
+                        onClick={handleDashboardClick}
+                      >
+                        Dashboard
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => onLogout?.()}
+                      className="inline-flex items-center gap-2 h-9 text-gray-600 hover:text-gray-800 text-sm font-medium leading-none whitespace-nowrap transition"
+                    >
+                      <LogOut className="w-4 h-4 shrink-0" />
+                      <span>Logout</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Login only on lg+ (this is what stops the overlap) */}
+                    <button
+                      className={`inline-flex items-center h-9 text-sm font-medium leading-none whitespace-nowrap transition ${
+                        isPublic
+                          ? "text-white hover:text-[#c9a882]"
+                          : "text-[#755f52] hover:text-[#8b7263]"
+                      }`}
+                      onClick={() => onNavigate("login")}
+                    >
+                      Login
+                    </button>
+
+                    <Button
+                      size="sm"
+                      className="bg-[#BDFF1C] hover:bg-[#a5e00f] text-white font-semibold whitespace-nowrap"
+                      onClick={() => onNavigate("signup")}
+                    >
+                      Get Started
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {/* Burger: visible below lg */}
+              <button
+                onClick={() => setIsMenuOpen((v) => !v)}
+                className={`lg:hidden ${
+                  isPublic ? "text-white hover:bg-[#8b7263]" : "text-gray-700 hover:bg-gray-100"
+                } rounded-lg transition w-10 h-10 flex items-center justify-center`}
+                aria-label="Toggle menu"
+                aria-expanded={isMenuOpen}
+              >
+                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Dropdown Panel (absolute so it can’t be clipped) */}
+          {isMenuOpen && (
+            <div
+              className={`lg:hidden absolute top-full left-0 right-0 ${
+                isPublic ? "bg-[#755f52] border-t border-[#8b7263]" : "bg-white border-t border-gray-200"
+              } shadow-md`}
+            >
+              <div className="px-4 py-4 flex flex-col gap-3">
+                {/* Public links show in menu on <xl */}
+                {isPublic && showNavLinks && (
+                  <>
+                    <button
+                      onClick={() => {
+                        onNavigate("services");
+                        setIsMenuOpen(false);
+                      }}
+                      className={`text-left font-medium transition px-2 py-2 min-h-[44px] ${
+                        isPublic ? "text-white hover:text-[#c9a882]" : "text-[#755f52] hover:text-[#8b7263]"
+                      }`}
+                    >
+                      Services
+                    </button>
+
+                    <button
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`text-left font-medium transition px-2 py-2 min-h-[44px] ${
+                        isPublic ? "text-white hover:text-[#c9a882]" : "text-[#755f52] hover:text-[#8b7263]"
+                      }`}
+                    >
+                      How It Works
+                    </button>
+
+                    <button
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`text-left font-medium transition px-2 py-2 min-h-[44px] ${
+                        isPublic ? "text-white hover:text-[#c9a882]" : "text-[#755f52] hover:text-[#8b7263]"
+                      }`}
+                    >
+                      Coverage
+                    </button>
+
+                    <div className={`border-t ${isPublic ? "border-[#8b7263]" : "border-gray-200"} pt-3 mt-2`} />
+                  </>
+                )}
+
+                {user ? (
+                  <>
+                    {showBrowseServices && (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-700 min-h-[44px]"
+                        onClick={() => {
+                          onNavigate("services");
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Browse Services
+                      </Button>
+                    )}
+
+                    {isPublic && (
+                      <button
+                        className={`w-full text-left px-2 py-2 min-h-[44px] font-medium transition ${
+                          isPublic ? "text-white hover:text-[#c9a882]" : "text-[#755f52] hover:text-[#8b7263]"
+                        }`}
+                        onClick={() => {
+                          handleDashboardClick();
+                        }}
+                      >
+                        Dashboard
+                      </button>
+                    )}
+
+                    <button
+                      className={`w-full flex items-center gap-2 px-2 py-2 min-h-[44px] font-medium transition ${
+                        isPublic ? "text-white hover:text-[#c9a882]" : "text-gray-700 hover:text-gray-900"
+                      }`}
+                      onClick={() => {
+                        onLogout?.();
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Login moved into dropdown for <lg */}
+                    <button
+                      className={`w-full text-left px-2 py-2 min-h-[44px] font-medium transition ${
+                        isPublic ? "text-white hover:text-[#c9a882]" : "text-[#755f52] hover:text-[#8b7263]"
+                      }`}
+                      onClick={() => {
+                        onNavigate("login");
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      Login
+                    </button>
+
+                    <Button
+                      className={`w-full min-h-[44px] ${
+                        isPublic ? "bg-[#BDFF1C] hover:bg-[#a5e00f] text-white" : "gradient-premium-green text-white"
+                      }`}
+                      onClick={() => {
+                        onNavigate("signup");
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      Get Started
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </nav>
   );
 }
-
-export {
-  NavigationMenu,
-  NavigationMenuList,
-  NavigationMenuItem,
-  NavigationMenuContent,
-  NavigationMenuTrigger,
-  NavigationMenuLink,
-  NavigationMenuIndicator,
-  NavigationMenuViewport,
-  navigationMenuTriggerStyle,
-};

@@ -1,0 +1,6 @@
+# Event Coverage Jamaica - robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap (update base URL if your domain differs)
+Sitemap: https://eventcoveragejamaica.com/sitemap.xml

@@ -10,6 +10,9 @@ coverage/
 # Production
 dist/
 build/
+
+# Supabase CLI
+supabase/.temp/
 *.local
 
 # Environment variables

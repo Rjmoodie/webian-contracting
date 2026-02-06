@@ -8,6 +8,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { User, Briefcase, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { getFreshToken } from '/utils/supabase/client';
 import Navigation from '../Navigation';
 
 interface TalentDashboardProps {
@@ -23,6 +24,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [backendAvailable, setBackendAvailable] = useState(true);
   const [formData, setFormData] = useState({
     skills: [] as string[],
     experience: '',
@@ -38,6 +40,9 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
     'Manchester', 'Clarendon', 'St. Catherine'
   ];
 
+  // Helper: get a valid token
+  const getToken = async () => await getFreshToken() || accessToken;
+
   useEffect(() => {
     fetchProfile();
     fetchAssignments();
@@ -45,11 +50,17 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
 
   const fetchProfile = async () => {
     try {
+      const token = await getToken();
       const response = await fetch(`${serverUrl}/talent/${user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
+
+      if (response.status === 401) {
+        console.warn('[TalentDashboard] Backend returned 401');
+        setBackendAvailable(false);
+        return;
+      }
+      setBackendAvailable(true);
 
       if (response.ok) {
         const data = await response.json();
@@ -79,11 +90,16 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
 
   const fetchAssignments = async () => {
     try {
+      const token = await getToken();
       const response = await fetch(`${serverUrl}/assignments/my`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
+
+      if (response.status === 401) {
+        setBackendAvailable(false);
+        return;
+      }
+      setBackendAvailable(true);
 
       if (response.ok) {
         const data = await response.json();
@@ -96,11 +112,12 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
 
   const handleSaveProfile = async () => {
     try {
+      const token = await getToken();
       const response = await fetch(`${serverUrl}/talent/apply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           skills: formData.skills,
@@ -178,37 +195,115 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
         showBrowseServices={false}
         showNavLinks={false}
       />
-      {/* Spacer for fixed header */}
-      <div className="h-16 sm:h-16" />
+      {/* Spacer for fixed header (taller on dashboard for larger logo) */}
+      <div className="h-16" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Card */}
-        <Card className="mb-8 bg-gradient-to-r from-[#7fa589] to-[#6d8f75] text-white">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Welcome to the Crew!</h2>
-                <p className="opacity-90">
-                  You are part of ECJ's private vetted crew. Your profile is visible only to ECJ coordinators.
-                </p>
-                <p className="opacity-75 text-sm mt-2">
-                  ⚠️ Your identity is never shown to clients - they hire ECJ services, not individuals.
-                </p>
+        {/* Backend connectivity warning */}
+        {!backendAvailable && (
+          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-3">
+            <span className="shrink-0 text-lg">&#9888;</span>
+            <span>
+              <strong>Backend unavailable</strong> — The server is not responding to authenticated requests.
+              Your data may not be up to date. The Edge Function may need to be redeployed.
+              <button onClick={() => { setBackendAvailable(true); fetchProfile(); fetchAssignments(); }} className="ml-2 underline font-semibold">Retry</button>
+            </span>
+          </div>
+        )}
+        {/* Welcome */}
+        <Card className="mb-6 sm:mb-8 gradient-premium-green text-white border-0 shadow-premium-lg overflow-hidden">
+          <CardContent className="p-5 sm:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex-1 flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <User className="w-6 h-6" />
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold mb-1">Talent Portal</h1>
+                  <p className="text-sm text-white/90">You’re part of ECJ’s vetted crew. Clients book ECJ services; your profile is internal only.</p>
+                </div>
               </div>
-              <User className="w-12 h-12" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Main Content */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Profile/Application */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{profile ? 'Your Profile' : 'Create Your Profile'}</CardTitle>
+        {/* Main Content — Assignments first on mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Assignments — first for quick access */}
+          <div className="lg:order-2 order-1">
+            <Card className="card-premium h-full flex flex-col">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-[#755f52]" />
+                  Assignments
+                  {assignments.length > 0 && (
+                    <Badge variant="secondary" className="ml-auto bg-[#BDFF1C]/20 text-[#755f52]">
+                      {assignments.filter((a: any) => a.status === 'pending').length} new
+                    </Badge>
+                  )}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-5 flex-1">
+                {assignments.length === 0 ? (
+                  <div className="text-center py-8 sm:py-10">
+                    <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                      <Briefcase className="w-7 h-7 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-700 mb-1">No assignments yet</p>
+                    <p className="text-xs text-gray-500">Complete your profile to receive event assignments from ECJ.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {assignments.map((assignment) => (
+                      <div key={assignment.id} className="border border-gray-200 rounded-xl p-4 hover:border-[#BDFF1C]/40 hover:shadow-md transition-all">
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <span className="text-sm font-semibold text-gray-900">Request #{assignment.requestId?.split('-').pop() || '—'}</span>
+                          <Badge className={
+                            assignment.status === 'accepted' || assignment.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                            assignment.status === 'declined' ? 'bg-gray-100 text-gray-700' :
+                            'bg-amber-100 text-amber-800'
+                          }>
+                            {assignment.status}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600 mb-3">Role: {assignment.role}</p>
+                        {assignment.status === 'pending' && (
+                          <div className="flex gap-2 pt-2">
+                            <Button 
+                              size="sm" 
+                              className="flex-1 bg-[#BDFF1C] hover:bg-[#a5e00f] text-[#755f52] font-semibold"
+                              onClick={() => handleRespondToAssignment(assignment.id, 'accepted')}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1.5 shrink-0" />
+                              Accept
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex-1 border-gray-300"
+                              onClick={() => handleRespondToAssignment(assignment.id, 'declined')}
+                            >
+                              <XCircle className="w-4 h-4 mr-1.5 shrink-0" />
+                              Decline
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Profile/Application */}
+          <div className="lg:col-span-2 lg:order-1 order-2">
+            <Card className="card-premium">
+              <CardHeader>
+                <CardTitle className="text-lg sm:text-xl">{profile ? 'Your Profile' : 'Create Your Profile'}</CardTitle>
+                <p className="text-sm text-gray-500 font-normal mt-1">Services, parishes, and portfolio</p>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
                 {editMode ? (
                   <div className="space-y-6">
                     <div>
@@ -286,7 +381,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
 
                     <div>
                       <Label className="mb-3 block">Coverage Parishes</Label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {parishes.map(parish => (
                           <div key={parish} className="flex items-center space-x-2">
                             <Checkbox
@@ -301,7 +396,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
                     </div>
 
                     <div className="flex gap-3 pt-4">
-                      <Button onClick={handleSaveProfile} className="flex-1">
+                      <Button onClick={handleSaveProfile} className="flex-1 gradient-premium-green text-white hover:opacity-95">
                         {profile ? 'Save Changes' : 'Submit Application'}
                       </Button>
                       {profile && (
@@ -355,63 +450,6 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
                         <p className="text-gray-600">Create your profile to start receiving assignments</p>
                       </div>
                     )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Assignments Sidebar */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Assignments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {assignments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 text-sm">No assignments yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {assignments.map((assignment) => (
-                      <div key={assignment.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-medium">Request #{assignment.requestId.split(':')[1]}</span>
-                          <Badge className={
-                            assignment.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                            assignment.status === 'declined' ? 'bg-red-100 text-red-800' :
-                            assignment.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }>
-                            {assignment.status}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-gray-600 mb-3">Role: {assignment.role}</p>
-                        
-                        {assignment.status === 'pending' && (
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              className="flex-1 bg-green-600 hover:bg-green-700"
-                              onClick={() => handleRespondToAssignment(assignment.id, 'accepted')}
-                            >
-                              <CheckCircle2 className="w-4 h-4 mr-1" />
-                              Accept
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="flex-1"
-                              onClick={() => handleRespondToAssignment(assignment.id, 'declined')}
-                            >
-                              <XCircle className="w-4 h-4 mr-1" />
-                              Decline
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
                   </div>
                 )}
               </CardContent>

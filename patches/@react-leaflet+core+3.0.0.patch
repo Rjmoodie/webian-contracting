@@ -1,0 +1,32 @@
+diff --git a/lib/context.js b/lib/context.js
+index 1234567..abcdefg 100644
+--- a/lib/context.js
++++ b/lib/context.js
+@@ -1,4 +1,4 @@
+-import { createContext, use } from 'react';
++import { createContext, useContext } from 'react';
+ export const CONTEXT_VERSION = 1;
+ export function createLeafletContext(map) {
+     return Object.freeze({
+@@ -14,7 +14,7 @@ export function extendContext(source, extra) {
+ }
+ export const LeafletContext = createContext(null);
+ export function useLeafletContext() {
+-    const context = use(LeafletContext);
++    const context = useContext(LeafletContext);
+     if (context == null) {
+         throw new Error('No context provided: useLeafletContext() can only be used in a descendant of <MapContainer>');
+     }
+diff --git a/lib/component.js b/lib/component.js
+index 1234567..abcdefg 100644
+--- a/lib/component.js
++++ b/lib/component.js
+@@ -6,7 +6,7 @@ import { LeafletContext } from './context.js';
+         const { instance, context } = useElement(props).current;
+         useImperativeHandle(forwardedRef, ()=>instance);
+         const { children } = props;
+-        return children == null ? null : /*#__PURE__*/ React.createElement(LeafletContext, {
++        return children == null ? null : /*#__PURE__*/ React.createElement(LeafletContext.Provider, {
+             value: context
+         }, children);
+     }

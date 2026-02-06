@@ -1,71 +1,69 @@
-import React, { useState } from 'react';
-import { Camera, Menu, X, LogOut } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import { Badge } from '@/app/components/ui/badge';
+import React, { useState, useEffect } from "react";
+import { Camera, Menu, X, LogOut } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import ECJLogo from "@/app/components/ECJLogo";
 
 interface NavigationProps {
   user?: any;
   onNavigate: (page: string) => void;
   onLogout?: () => void;
-  variant?: 'public' | 'dashboard';
+  variant?: "public" | "dashboard";
   portalLabel?: string;
   showBrowseServices?: boolean;
   showNavLinks?: boolean;
 }
 
-// User Greeting Component - Bulletproof for any name length
+// User Greeting (safe + consistent)
 function UserGreeting({ user }: { user: { name: string } }) {
   return (
     <span
       title={`Hi, ${user.name}`}
-      className="text-xs sm:text-sm font-medium text-[#755f52] max-w-[5rem] sm:max-w-[7rem] md:max-w-[9rem] truncate whitespace-nowrap shrink-0 inline-block"
+      className="hidden lg:inline-flex items-center h-9 text-sm font-medium text-white/90 whitespace-nowrap leading-none"
     >
       Hi, {user.name}
     </span>
   );
 }
 
-// Logo Component
+// Logo — clickable, no text; logo only links to home. 2x smaller in headers.
 function Logo({ onClick, isPublic }: { onClick: () => void; isPublic: boolean }) {
+  const logoHeight = isPublic ? 'h-[50px]' : 'h-[60px]';
   return (
-    <div onClick={onClick} className="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0">
-      <div className={`${isPublic ? 'w-8 h-8 sm:w-9 sm:h-9 gradient-premium-gold' : 'w-8 h-8 sm:w-10 sm:h-10 gradient-premium'} rounded-xl flex items-center justify-center shadow-premium hover:scale-105 transition-transform`}>
-        <Camera className={`${isPublic ? 'w-4 h-4 sm:w-5 sm:h-5' : 'w-4 h-4 sm:w-6 sm:h-6'} text-white`} />
-      </div>
-      <div className="min-w-0">
-        <h1 className={`${isPublic ? 'text-base sm:text-lg font-bold text-white' : 'text-lg sm:text-xl md:text-2xl font-bold text-[#B0DD16]'} tracking-tight truncate`}>
-          <span className="hidden sm:inline">EventCoverageJamaica</span>
-          <span className="sm:hidden">ECJ</span>
-        </h1>
-        {isPublic && (
-          <p className="text-[9px] sm:text-[10px] text-[#c9a882] hidden sm:block truncate">
-            Professional Event Services
-          </p>
-        )}
+    <div
+      onClick={onClick}
+      className="flex items-center cursor-pointer shrink-0 group"
+      role="link"
+      aria-label="Event Coverage Jamaica – Home"
+    >
+      <div className={`flex-shrink-0 hover:scale-105 transition-transform duration-200 ${logoHeight} flex items-center`}>
+        <ECJLogo
+          size="xl"
+          className="drop-shadow-sm max-h-full w-auto"
+        />
       </div>
     </div>
   );
 }
 
-// Public Navigation Links Component
+// Public links (desktop only)
 function PublicLinks({ onNavigate }: { onNavigate: (page: string) => void }) {
   return (
-    <div className="hidden md:flex gap-6 shrink-0">
+    <div className="hidden md:flex items-center gap-6 shrink-0">
       <button
-        onClick={() => onNavigate('services')}
-        className="text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap h-8 flex items-center"
+        onClick={() => onNavigate("services")}
+        className="inline-flex items-center h-9 leading-none text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap"
       >
         Services
       </button>
       <button
-        onClick={() => {/* scroll to how it works */}}
-        className="text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap h-8 flex items-center"
+        onClick={() => onNavigate("portfolio")}
+        className="inline-flex items-center h-9 leading-none text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap"
       >
-        How It Works
+        Portfolio
       </button>
       <button
-        onClick={() => {/* scroll to coverage */}}
-        className="text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap h-8 flex items-center"
+        onClick={() => onNavigate("coverage-areas")}
+        className="inline-flex items-center h-9 leading-none text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap"
       >
         Coverage
       </button>
@@ -77,252 +75,223 @@ export default function Navigation({
   user,
   onNavigate,
   onLogout,
-  variant = 'public',
+  variant = "public",
   portalLabel,
   showBrowseServices = false,
-  showNavLinks = true
+  showNavLinks = true,
 }: NavigationProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isPublic = variant === 'public';
+  const isPublic = variant === "public";
 
-  const navClass = isPublic
-    ? 'glass-dark fixed top-0 left-0 w-full z-50 shadow-premium-lg border-b border-white/10'
-    : 'glass bg-white fixed top-0 left-0 w-full z-50 border-b border-[#755f5233] shadow-premium';
+  // Same header color as home page so logo shows well (brown #755f52)
+  const navClass =
+    "bg-[#755f52] fixed top-0 left-0 w-full z-50 shadow-md header-nav";
 
   const handleDashboardClick = () => {
-    if (user?.role === 'client') onNavigate('client-dashboard');
-    else if (user?.role === 'talent') onNavigate('talent-dashboard');
-    else if (user?.role === 'admin' || user?.role === 'manager') onNavigate('admin-dashboard');
+    if (user?.role === "client") onNavigate("client-dashboard");
+    else if (user?.role === "talent") onNavigate("talent-dashboard");
+    else if (user?.role === "admin" || user?.role === "manager")
+      onNavigate("admin-dashboard");
     setIsMenuOpen(false);
   };
 
+  const closeMenu = () => setIsMenuOpen(false);
+
+  // Auto-close menu on desktop resize (when nav links become visible)
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMenuOpen(false);
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   return (
     <nav className={navClass}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Main Header Row */}
-        <div className={`${isPublic ? 'h-16' : 'h-16'} flex items-center justify-between min-w-0 gap-4 overflow-hidden`}>
-          
-          {/* LEFT SECTION */}
-          <div className="flex items-center gap-4 sm:gap-6 min-w-0 flex-1 overflow-hidden">
-            <Logo onClick={() => onNavigate('home')} isPublic={isPublic} />
-            
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        {/* Header row — taller on dashboard for larger logo */}
+        <div className={`flex items-center justify-between gap-3 ${isPublic ? 'h-16' : 'h-16'}`}>
+          {/* LEFT */}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+            <Logo onClick={() => onNavigate("home")} isPublic={isPublic} />
             {isPublic && showNavLinks && <PublicLinks onNavigate={onNavigate} />}
-            
             {!isPublic && portalLabel && (
-              <Badge className="gradient-premium text-white border-0 shadow-premium text-xs sm:text-sm whitespace-nowrap shrink-0">
+              <span className="hidden lg:inline-flex text-sm sm:text-base text-white/90 font-medium whitespace-nowrap">
                 {portalLabel}
-              </Badge>
+              </span>
             )}
           </div>
 
-          {/* RIGHT SECTION */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-            {/* User Greeting (Dashboard only) */}
-            {!isPublic && user && (
-              <div className="shrink-0 min-w-0">
-                <UserGreeting user={user} />
-              </div>
-            )}
+          {/* RIGHT */}
+          <div className="flex items-center gap-2 shrink-0">
+            {!isPublic && user && <UserGreeting user={user} />}
 
-            {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex items-center gap-2 shrink-0">
+            {/* Desktop actions (md+) */}
+            <div className="hidden md:flex items-center gap-3 shrink-0">
               {user ? (
                 <>
                   {showBrowseServices && (
                     <Button
                       variant="outline"
                       size="sm"
-                      className="!h-8 !min-h-0 text-xs sm:text-sm border-2 border-[#755f52] text-[#755f52] hover:bg-[#755f52] hover:text-white transition-all whitespace-nowrap shrink-0"
-                      onClick={() => onNavigate('services')}
+                      className="bg-white/10 hover:bg-white/20 border-white/40 text-white font-medium whitespace-nowrap"
+                      onClick={() => onNavigate("services")}
                     >
-                      <span className="hidden sm:inline">Browse Services</span>
-                      <span className="sm:hidden">Services</span>
+                      Browse Services
                     </Button>
                   )}
+
                   {isPublic && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="!h-8 !min-h-0 text-white hover:text-[#c9a882] hover:bg-[#8b7263] text-xs sm:text-sm whitespace-nowrap shrink-0"
+                    <button
+                      className="inline-flex items-center h-9 text-sm font-medium leading-none whitespace-nowrap text-white hover:text-[#c9a882] transition"
                       onClick={handleDashboardClick}
                     >
                       Dashboard
-                    </Button>
+                    </button>
                   )}
-                  <Button
-                    variant={isPublic ? "outline" : "ghost"}
-                    size="sm"
+
+                  <button
                     onClick={() => onLogout?.()}
-                    className={`!h-8 !min-h-0 text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 ${
-                      isPublic
-                        ? "border-[#c9a882] text-[#c9a882] hover:bg-[#c9a882] hover:text-[#755f52]"
-                        : "text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb]"
-                    }`}
+                    className="inline-flex items-center gap-2 h-9 text-white/90 hover:text-white text-sm font-medium leading-none whitespace-nowrap transition"
                   >
-                    <LogOut className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2 shrink-0" />
-                    <span className="hidden sm:inline">Logout</span>
-                    <span className="sm:hidden">Logout</span>
-                  </Button>
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </button>
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`!h-8 !min-h-0 text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 ${
-                      isPublic
-                        ? "text-white hover:text-[#c9a882] hover:bg-[#8b7263]"
-                        : "text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb]"
-                    }`}
-                    onClick={() => onNavigate('login')}
+                  <button
+                    className="inline-flex items-center h-9 text-sm font-medium leading-none whitespace-nowrap text-white hover:text-[#c9a882] transition"
+                    onClick={() => onNavigate("login")}
                   >
                     Login
-                  </Button>
+                  </button>
+
                   <Button
                     size="sm"
-                    className={`!h-8 !min-h-0 text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${
-                      isPublic
-                        ? "bg-[#B0DD16] hover:bg-[#9ac514] text-white"
-                        : "gradient-premium-green text-white hover:shadow-premium-lg"
-                    }`}
-                    onClick={() => onNavigate('signup')}
+                    className="bg-[#BDFF1C] hover:bg-[#a5e00f] text-white font-semibold whitespace-nowrap"
+                    onClick={() => onNavigate("signup")}
                   >
-                    {isPublic ? 'Get Started' : 'Sign Up'}
+                    Get Started
                   </Button>
                 </>
               )}
             </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu Button — MOBILE ONLY (hidden on desktop) */}
             <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`${isPublic ? 'md:hidden text-white' : 'sm:hidden text-[#755f52]'} ${isPublic ? 'hover:bg-[#8b7263]' : 'hover:bg-[#f5f1eb]'} rounded-lg transition !h-8 !w-8 shrink-0 flex items-center justify-center p-0`}
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              className="burger-menu-button rounded-lg transition w-9 h-9 flex items-center justify-center shrink-0 text-white hover:bg-[#8b7263]"
               aria-label="Toggle menu"
+              aria-expanded={isMenuOpen}
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu — Shows when nav links are hidden */}
         {isMenuOpen && (
-          <div className={`${isPublic ? 'md:hidden border-t border-[#5a4a3f]' : 'sm:hidden border-t border-gray-200'} py-4`}>
-            <div className="flex flex-col gap-3">
-              {isPublic && showNavLinks && (
-                <>
-                  <button
-                    onClick={() => {
-                      onNavigate('services');
-                      setIsMenuOpen(false);
-                    }}
-                    className={`text-left font-medium transition px-2 py-2 min-h-[44px] ${
-                      isPublic
-                        ? "text-white hover:text-[#c9a882]"
-                        : "text-[#755f52] hover:text-[#8b7263]"
-                    }`}
-                  >
-                    Services
-                  </button>
-                  <button
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`text-left font-medium transition px-2 py-2 min-h-[44px] ${
-                      isPublic
-                        ? "text-white hover:text-[#c9a882]"
-                        : "text-[#755f52] hover:text-[#8b7263]"
-                    }`}
-                  >
-                    How It Works
-                  </button>
-                  <button
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`text-left font-medium transition px-2 py-2 min-h-[44px] ${
-                      isPublic
-                        ? "text-white hover:text-[#c9a882]"
-                        : "text-[#755f52] hover:text-[#8b7263]"
-                    }`}
-                  >
-                    Coverage
-                  </button>
-                  <div className={`border-t ${isPublic ? 'border-[#5a4a3f]' : 'border-gray-200'} pt-3 mt-2`} />
-                </>
-              )}
+          <div className="md:hidden absolute left-0 right-0 top-full z-50 bg-[#755f52] border-t border-[#8b7263] shadow-md">
+            <div className="px-4 sm:px-6 py-4">
+              <div className="flex flex-col gap-2">
+                {isPublic && showNavLinks && (
+                  <>
+                    <button
+                      onClick={() => {
+                        onNavigate("services");
+                        closeMenu();
+                      }}
+                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                    >
+                      Services
+                    </button>
+                    <button
+                      onClick={() => {
+                        onNavigate("portfolio");
+                        closeMenu();
+                      }}
+                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                    >
+                      Portfolio
+                    </button>
+                    <button
+                      onClick={() => {
+                        onNavigate("coverage-areas");
+                        closeMenu();
+                      }}
+                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                    >
+                      Coverage
+                    </button>
+                    <div className="my-2 border-t border-[#8b7263]" />
+                  </>
+                )}
 
-              {user ? (
-                <>
-                  {showBrowseServices && (
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start border-2 border-[#755f52] text-[#755f52] hover:bg-[#755f52] hover:text-white mb-2 min-h-[44px]"
+                {user ? (
+                  <>
+                    {showBrowseServices && (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start bg-white/10 hover:bg-white/20 border-white/40 text-white rounded-lg"
+                        onClick={() => {
+                          onNavigate("services");
+                          closeMenu();
+                        }}
+                      >
+                        Browse Services
+                      </Button>
+                    )}
+
+                    {isPublic && (
+                      <button
+                        className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                        onClick={() => {
+                          handleDashboardClick();
+                          closeMenu();
+                        }}
+                      >
+                        Dashboard
+                      </button>
+                    )}
+
+                    <button
+                      className="w-full flex items-center gap-2 px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
                       onClick={() => {
-                        onNavigate('services');
-                        setIsMenuOpen(false);
+                        onLogout?.();
+                        closeMenu();
                       }}
                     >
-                      Browse Services
-                    </Button>
-                  )}
-                  {isPublic && (
-                    <Button
-                      variant="ghost"
-                      className={`w-full justify-start mb-2 min-h-[44px] ${
-                        isPublic
-                          ? "text-white hover:text-[#c9a882] hover:bg-[#8b7263]"
-                          : "text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb]"
-                      }`}
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
                       onClick={() => {
-                        handleDashboardClick();
+                        onNavigate("login");
+                        closeMenu();
                       }}
                     >
-                      Dashboard
+                      Login
+                    </button>
+
+                    <Button
+                      className="w-full rounded-lg bg-[#BDFF1C] hover:bg-[#a5e00f] text-white"
+                      onClick={() => {
+                        onNavigate("signup");
+                        closeMenu();
+                      }}
+                    >
+                      Get Started
                     </Button>
-                  )}
-                  <Button
-                    variant={isPublic ? "outline" : "ghost"}
-                    className={`w-full min-h-[44px] ${
-                      isPublic
-                        ? "border-[#c9a882] text-[#c9a882] hover:bg-[#c9a882] hover:text-[#755f52]"
-                        : "text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb]"
-                    }`}
-                    onClick={() => {
-                      onLogout?.();
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    className={`w-full justify-start mb-2 min-h-[44px] ${
-                      isPublic
-                        ? "text-white hover:text-[#c9a882] hover:bg-[#8b7263]"
-                        : "text-[#755f52] hover:text-[#8b7263] hover:bg-[#f5f1eb]"
-                    }`}
-                    onClick={() => {
-                      onNavigate('login');
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    Login
-                  </Button>
-                  <Button
-                    className={`w-full min-h-[44px] ${
-                      isPublic
-                        ? "bg-[#B0DD16] hover:bg-[#9ac514] text-white"
-                        : "gradient-premium-green text-white"
-                    }`}
-                    onClick={() => {
-                      onNavigate('signup');
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    {isPublic ? 'Get Started' : 'Sign Up'}
-                  </Button>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}
