@@ -9,7 +9,7 @@
   left: 0.5rem;
   z-index: 9999;
   padding: 0.75rem 1rem;
-  background: #755f52;
+  background: var(--brand-black, #000);
   color: white;
   font-weight: 600;
   text-decoration: none;

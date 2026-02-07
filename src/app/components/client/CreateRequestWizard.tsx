@@ -7,240 +7,225 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Badge } from '@/app/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Check, Camera, Video, Music, CheckCircle2, Search, MapPin, Tag, Sparkles, XCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, XCircle, MapPin, Ruler, HardHat, FileText, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
-import ECJLogo from '@/app/components/ECJLogo';
+import BrandLogo from '@/app/components/ECJLogo';
+import GooglePlacesAutocomplete, { type PlaceResult } from '@/app/components/ui/google-places-autocomplete';
+import { getSupabase } from '/utils/supabase/client';
+import { api } from '/utils/supabase/api';
 
 interface CreateRequestWizardProps {
-  serverUrl: string;
   accessToken: string;
   onClose: () => void;
   onNavigate: (page: string) => void;
 }
 
-export default function CreateRequestWizard({ serverUrl, accessToken, onClose, onNavigate }: CreateRequestWizardProps) {
+interface ServiceType {
+  id: string;
+  name: string;
+  description: string;
+  base_rate: number;
+  discount_rate: number;
+}
+
+const MAX_ATTACHMENTS = 10;
+const MAX_FILE_SIZE_MB = 10;
+
+export default function CreateRequestWizard({ accessToken, onClose, onNavigate }: CreateRequestWizardProps) {
   const [step, setStep] = useState(1);
-  const [availableServices, setAvailableServices] = useState<any[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [loadingServices, setLoadingServices] = useState(true);
-  
-  // Step 2 optimization states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [showParishMatch, setShowParishMatch] = useState(false);
-  
+  const [attachments, setAttachments] = useState<File[]>([]);
+
   const [formData, setFormData] = useState({
-    eventName: '',
-    eventDate: '',
-    eventTime: '',
-    parish: '',
-    venue: '',
-    venueType: '',
-    selectedServices: [] as string[], // Array of service IDs
-    services: {
-      photo: false,
-      video: false,
-      audio: false,
-    },
-    deliverables: {
-      photoCount: '',
-      highlightVideo: false,
-      fullEdit: false,
-      audioRecording: false,
-    },
-    turnaround: 'standard',
-    budget: '',
+    // Client info (pre-filled where possible)
+    clientAddress: '',
+    clientAddressLat: null as number | null,
+    clientAddressLng: null as number | null,
+    clientAddressPlaceId: null as string | null,
+
+    // Project details
+    projectName: '',
+    projectDescription: '',          // ← required detailed description
+    projectLocation: '',
+    projectAddress: '',
+    projectAddressLat: null as number | null,
+    projectAddressLng: null as number | null,
+    projectAddressPlaceId: null as string | null,
+    serviceTypeId: '',
+    investigationType: '',
+    surveyAreaSqm: '',
+
+    // Site logistics
+    clearanceAccess: false,
+    mobilizationNeeded: false,
+    mobilizationCost: '',
+    accommodationNeeded: false,
+    accommodationCost: '',
+    serviceHeadCount: '1',
+
+    // Additional
     notes: '',
   });
 
   useEffect(() => {
-    fetchServices();
+    fetchServiceTypes();
   }, []);
 
-  const fetchServices = async () => {
+  const fetchServiceTypes = async () => {
     try {
-      const response = await fetch(`${serverUrl}/services`);
+      const response = await fetch(`${api('lookups')}/services`);
       if (response.ok) {
         const data = await response.json();
-        setAvailableServices(data.services || []);
+        setServiceTypes(data.services || []);
       }
     } catch (error) {
-      console.error('Error fetching services:', error);
+      console.error('Error fetching service types:', error);
     } finally {
       setLoadingServices(false);
     }
   };
 
-  const parishes = [
-    'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',
-    'Trelawny', 'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth',
-    'Manchester', 'Clarendon', 'St. Catherine'
-  ];
-
   const updateFormData = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const updateDeliverables = (deliverable: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      deliverables: { ...prev.deliverables, [deliverable]: value }
-    }));
-  };
-
   const handleSubmit = async () => {
+    setSubmitting(true);
     try {
-      const response = await fetch(`${serverUrl}/requests`, {
+      const payload = {
+        projectName: formData.projectName,
+        projectDescription: formData.projectDescription,
+        projectLocation: formData.projectLocation,
+        projectAddress: formData.projectAddress || formData.projectLocation,
+        projectAddressLat: formData.projectAddressLat,
+        projectAddressLng: formData.projectAddressLng,
+        projectAddressPlaceId: formData.projectAddressPlaceId,
+        serviceTypeId: formData.serviceTypeId,
+        investigationType: formData.investigationType || getSelectedServiceName(),
+        surveyAreaSqm: formData.surveyAreaSqm ? parseFloat(formData.surveyAreaSqm) : null,
+        clearanceAccess: formData.clearanceAccess,
+        mobilizationNeeded: formData.mobilizationNeeded,
+        mobilizationCost: formData.mobilizationCost ? parseFloat(formData.mobilizationCost) : 0,
+        accommodationNeeded: formData.accommodationNeeded,
+        accommodationCost: formData.accommodationCost ? parseFloat(formData.accommodationCost) : 0,
+        serviceHeadCount: parseInt(formData.serviceHeadCount) || 1,
+        clientAddress: formData.clientAddress || null,
+        clientAddressLat: formData.clientAddressLat,
+        clientAddressLng: formData.clientAddressLng,
+        clientAddressPlaceId: formData.clientAddressPlaceId,
+        notes: formData.notes || null,
+      };
+
+      const response = await fetch(`${api('projects')}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        toast.success('Request created successfully!');
+        const data = await response.json();
+        const projectId = data.project?.id;
+
+        if (projectId && attachments.length > 0) {
+          const supabase = getSupabase();
+          const uploaded: { file_path: string; file_name: string; file_size: number; content_type: string }[] = [];
+          for (const file of attachments) {
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const filePath = `${projectId}/${crypto.randomUUID()}_${safeName}`;
+            const { error: uploadError } = await supabase.storage
+              .from('request-attachments')
+              .upload(filePath, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+            if (uploadError) {
+              console.error('Upload error:', uploadError);
+              toast.error(`Could not upload ${file.name}. Request was created.`);
+              continue;
+            }
+            uploaded.push({
+              file_path: filePath,
+              file_name: file.name,
+              file_size: file.size,
+              content_type: file.type || '',
+            });
+          }
+          if (uploaded.length > 0) {
+            const attachRes = await fetch(`${api('projects')}/${projectId}/attachments`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+              body: JSON.stringify({ attachments: uploaded }),
+            });
+            if (!attachRes.ok) {
+              toast.warning('Request created but some attachments could not be registered.');
+            }
+          }
+        }
+
+        toast.success('Request for Quote submitted successfully! Our team will review and prepare a quote.');
         onClose();
       } else {
         const data = await response.json();
-        toast.error(data.error || 'Failed to create request');
+        toast.error(data.error || 'Failed to submit request');
       }
     } catch (error) {
-      console.error('Error creating request:', error);
-      toast.error('Failed to create request');
+      console.error('Error submitting RFQ:', error);
+      toast.error('Failed to submit request');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const canProceedStep1 = formData.eventName && formData.eventDate && formData.parish && formData.venue;
-  const canProceedStep2 = formData.selectedServices.length > 0;
-
-  const toggleService = (serviceId: string) => {
-    setFormData(prev => {
-      const isSelected = prev.selectedServices.includes(serviceId);
-      return {
-        ...prev,
-        selectedServices: isSelected
-          ? prev.selectedServices.filter(id => id !== serviceId)
-          : [...prev.selectedServices, serviceId]
-      };
-    });
-  };
-
-  const getCategoryIcon = (category: string) => {
-    switch(category) {
-      case 'photography':
-        return <Camera className="w-6 h-6" />;
-      case 'videography':
-        return <Video className="w-6 h-6" />;
-      case 'audio':
-        return <Music className="w-6 h-6" />;
-      default:
-        return null;
+  const addAttachmentFiles = (files: FileList | null) => {
+    if (!files?.length) return;
+    const maxBytes = MAX_FILE_SIZE_MB * 1024 * 1024;
+    const next: File[] = [...attachments];
+    for (let i = 0; i < files.length && next.length < MAX_ATTACHMENTS; i++) {
+      const f = files[i];
+      if (f.size > maxBytes) {
+        toast.error(`${f.name} is over ${MAX_FILE_SIZE_MB}MB and was skipped.`);
+        continue;
+      }
+      next.push(f);
+    }
+    if (next.length > MAX_ATTACHMENTS) {
+      toast.warning(`Maximum ${MAX_ATTACHMENTS} files. Some were skipped.`);
+      setAttachments(next.slice(0, MAX_ATTACHMENTS));
+    } else {
+      setAttachments(next);
     }
   };
 
-  // Filter and sort services for Step 2
-  const getFilteredServices = () => {
-    let filtered = [...availableServices];
-
-    // Category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(service => service.category === categoryFilter);
-    }
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(service =>
-        service.serviceName.toLowerCase().includes(query) ||
-        service.description?.toLowerCase().includes(query) ||
-        service.subType?.toLowerCase().includes(query) ||
-        service.goodFor?.some((tag: string) => tag.toLowerCase().includes(query))
-      );
-    }
-
-    // Parish match filter (show services available in user's parish first)
-    if (showParishMatch && formData.parish) {
-      filtered.sort((a, b) => {
-        const aMatches = a.coverageParishes?.includes(formData.parish);
-        const bMatches = b.coverageParishes?.includes(formData.parish);
-        if (aMatches && !bMatches) return -1;
-        if (!aMatches && bMatches) return 1;
-        return 0;
-      });
-    }
-
-    return filtered;
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const filteredServices = getFilteredServices();
-
-  // Check if service is available in selected parish
-  const isAvailableInParish = (service: any) => {
-    if (!formData.parish || !service.coverageParishes) return true;
-    return service.coverageParishes.includes(formData.parish);
+  const getSelectedServiceName = () => {
+    const selected = serviceTypes.find(st => st.id === formData.serviceTypeId);
+    return selected?.name || '';
   };
 
-  // Get recommended services based on venue type
-  const getRecommendedServices = () => {
-    if (!formData.venueType) return [];
-    const recommendations: string[] = [];
-    
-    switch (formData.venueType) {
-      case 'hotel':
-      case 'conference':
-        recommendations.push('corporate', 'wedding');
-        break;
-      case 'outdoor':
-        recommendations.push('festival', 'outdoor');
-        break;
-      case 'street':
-        recommendations.push('press', 'festival');
-        break;
-    }
-    
-    return availableServices.filter(service =>
-      recommendations.includes(service.subType)
-    ).slice(0, 2);
-  };
-
-  const recommendedServices = getRecommendedServices();
-
-  // Get selected service objects for Steps 3 & 4
-  const getSelectedServiceObjects = () => {
-    return availableServices.filter(service => 
-      formData.selectedServices.includes(service.id)
-    );
-  };
-
-  const selectedServiceObjects = getSelectedServiceObjects();
-
-  // Calculate estimated info
-  const getTotalDeliverables = () => {
-    let count = 0;
-    selectedServiceObjects.forEach(service => {
-      if (service.deliverables) count += service.deliverables.length;
-    });
-    return count;
-  };
+  const canProceedStep1 = formData.projectName.trim() && formData.projectDescription.trim() && formData.projectLocation;
+  const canProceedStep2 = formData.serviceTypeId && formData.surveyAreaSqm;
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <nav className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50 header-nav">
+      <nav className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 gap-2 sm:gap-4 md:gap-6">
+          <div className="flex justify-between items-center h-16 gap-2 sm:gap-4">
             <button
               type="button"
               onClick={() => onNavigate('home')}
               className="flex items-center cursor-pointer shrink-0"
-              aria-label="Event Coverage Jamaica – Home"
+              aria-label="Webian Contracting – Home"
             >
-              <ECJLogo size="xl" className="max-h-full" />
+              <BrandLogo size="xl" className="max-h-full" />
             </button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={onClose}
               className="inline-flex items-center whitespace-nowrap shrink-0"
@@ -252,748 +237,632 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
           </div>
         </div>
       </nav>
-      {/* Spacer for fixed header */}
       <div className="h-24" />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Progress */}
+        {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-4">
             {[1, 2, 3, 4].map((s) => (
               <div key={s} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
                   s < step ? 'bg-green-600 text-white' :
-                  s === step ? 'bg-blue-600 text-white' :
+                  s === step ? 'bg-[#E2582A] text-white' :
                   'bg-gray-200 text-gray-600'
                 }`}>
                   {s < step ? <Check className="w-5 h-5" /> : s}
                 </div>
-                {s < 4 && <div className={`w-16 h-1 ${s < step ? 'bg-green-600' : 'bg-gray-200'}`} />}
+                {s < 4 && <div className={`w-12 sm:w-16 h-1 ${s < step ? 'bg-green-600' : 'bg-gray-200'}`} />}
               </div>
             ))}
           </div>
-          <div className="text-center mt-4 text-gray-600">
-            Step {step} of 4
+          <div className="flex justify-center gap-8 mt-3 text-xs text-gray-500">
+            <span className={step === 1 ? 'text-[#E2582A] font-semibold' : ''}>Project Info</span>
+            <span className={step === 2 ? 'text-[#E2582A] font-semibold' : ''}>Survey Details</span>
+            <span className={step === 3 ? 'text-[#E2582A] font-semibold' : ''}>Site Logistics</span>
+            <span className={step === 4 ? 'text-[#E2582A] font-semibold' : ''}>Review</span>
           </div>
         </div>
 
         {/* Step Content */}
-        <Card>
+        <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle>
-              {step === 1 && 'Event Details'}
-              {step === 2 && 'Coverage Needed'}
-              {step === 3 && 'Deliverables & Requirements'}
+            <CardTitle className="text-gray-900">
+              {step === 1 && 'Project Information'}
+              {step === 2 && 'Survey & Service Details'}
+              {step === 3 && 'Site Logistics'}
               {step === 4 && 'Review & Submit'}
             </CardTitle>
             <CardDescription>
-              {step === 1 && 'Tell us about your event'}
-              {step === 2 && 'Select the services you need'}
-              {step === 3 && 'Specify your deliverables and turnaround time'}
-              {step === 4 && 'Review your request before submitting'}
+              {step === 1 && 'Tell us about the project that needs surveying'}
+              {step === 2 && 'Specify the type of investigation and area'}
+              {step === 3 && 'Logistics details for mobilization and access'}
+              {step === 4 && 'Review your Request for Quote before submitting'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Step 1: Event Basics */}
+
+            {/* ── STEP 1: Project Information ── */}
             {step === 1 && (
               <>
                 <div>
-                  <Label htmlFor="eventName">Event Name *</Label>
+                  <Label htmlFor="projectName" className="font-semibold text-gray-900">
+                    Project Name <span className="text-red-500">*</span>
+                  </Label>
                   <Input
-                    id="eventName"
-                    placeholder="Annual Company Gala"
-                    value={formData.eventName}
-                    onChange={(e) => updateFormData('eventName', e.target.value)}
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="eventDate">Event Date *</Label>
-                    <Input
-                      id="eventDate"
-                      type="date"
-                      value={formData.eventDate}
-                      onChange={(e) => updateFormData('eventDate', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="eventTime">Event Time</Label>
-                    <Input
-                      id="eventTime"
-                      type="time"
-                      value={formData.eventTime}
-                      onChange={(e) => updateFormData('eventTime', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="parish">Parish *</Label>
-                  <Select value={formData.parish} onValueChange={(value) => updateFormData('parish', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select parish" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {parishes.map(parish => (
-                        <SelectItem key={parish} value={parish}>{parish}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="venue">Venue Address *</Label>
-                  <Input
-                    id="venue"
-                    placeholder="123 Main Street, Kingston"
-                    value={formData.venue}
-                    onChange={(e) => updateFormData('venue', e.target.value)}
+                    id="projectName"
+                    placeholder="e.g. CPFSA - Utility & Anomaly Scan"
+                    value={formData.projectName}
+                    onChange={(e) => updateFormData('projectName', e.target.value)}
+                    className="mt-1 cursor-text"
+                    required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="venueType">Venue Type</Label>
-                  <Select value={formData.venueType} onValueChange={(value) => updateFormData('venueType', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select venue type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hotel">Hotel</SelectItem>
-                      <SelectItem value="outdoor">Outdoor</SelectItem>
-                      <SelectItem value="conference">Conference Center</SelectItem>
-                      <SelectItem value="street">Street / Public</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="projectDescription" className="font-semibold text-gray-900">
+                    Detailed Project Description <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="projectDescription"
+                    placeholder="Describe the scope, objectives, and any specific requirements for this project. E.g. 'Conduct a GPR utility scan to identify underground utilities and anomalies before excavation begins. The site is a 3,500 sq m lot adjacent to a main road with known drainage infrastructure…'"
+                    rows={5}
+                    value={formData.projectDescription}
+                    onChange={(e) => updateFormData('projectDescription', e.target.value)}
+                    className="mt-1 cursor-text resize-none"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Include the project scope, objectives, site conditions, and any known constraints. This helps us prepare an accurate quote.
+                  </p>
+                  {formData.projectDescription.trim().length > 0 && formData.projectDescription.trim().length < 30 && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      Please provide more detail — at least a few sentences about the project scope.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="projectLocation" className="font-semibold text-gray-900">
+                    Project Location / Parish <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="projectLocation"
+                    placeholder="e.g. Kingston 13, Jamaica"
+                    value={formData.projectLocation}
+                    onChange={(e) => updateFormData('projectLocation', e.target.value)}
+                    className="mt-1 cursor-text"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Parish, city, or region where the project is located</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="projectAddress" className="font-semibold text-gray-900">
+                    Project Site Address
+                  </Label>
+                  <div className="mt-1">
+                    <GooglePlacesAutocomplete
+                      id="projectAddress"
+                      value={formData.projectAddress}
+                      onChange={(val) => updateFormData('projectAddress', val)}
+                      onPlaceSelect={(place: PlaceResult) => {
+                        updateFormData('projectAddress', place.formattedAddress);
+                        updateFormData('projectAddressLat', place.lat);
+                        updateFormData('projectAddressLng', place.lng);
+                        updateFormData('projectAddressPlaceId', place.placeId);
+                      }}
+                      placeholder="Search for the project site address..."
+                      countryRestriction="jm"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Start typing to search. The precise location will be used for logistics planning.
+                  </p>
+                  {formData.projectAddressLat && formData.projectAddressLng && (
+                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-green-700 bg-green-50 rounded-lg px-2.5 py-1.5 w-fit">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Location verified ({formData.projectAddressLat.toFixed(5)}, {formData.projectAddressLng.toFixed(5)})</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="clientAddress" className="font-semibold text-gray-900">
+                    Your Company / Billing Address
+                  </Label>
+                  <div className="mt-1">
+                    <GooglePlacesAutocomplete
+                      id="clientAddress"
+                      value={formData.clientAddress}
+                      onChange={(val) => updateFormData('clientAddress', val)}
+                      onPlaceSelect={(place: PlaceResult) => {
+                        updateFormData('clientAddress', place.formattedAddress);
+                        updateFormData('clientAddressLat', place.lat);
+                        updateFormData('clientAddressLng', place.lng);
+                        updateFormData('clientAddressPlaceId', place.placeId);
+                      }}
+                      placeholder="Search for your company address..."
+                      countryRestriction="jm"
+                    />
+                  </div>
+                  {formData.clientAddressLat && formData.clientAddressLng && (
+                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-green-700 bg-green-50 rounded-lg px-2.5 py-1.5 w-fit">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Location verified</span>
+                    </div>
+                  )}
                 </div>
               </>
             )}
 
-            {/* Step 2: Coverage Needed - OPTIMIZED */}
+            {/* ── STEP 2: Survey Details ── */}
             {step === 2 && (
-              <div className="space-y-6">
-                {/* Selection Summary */}
-                {formData.selectedServices.length > 0 && (
-                  <div className="bg-gradient-to-r from-[#BDFF1C]/10 to-[#7fa589]/10 border-2 border-[#BDFF1C] rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-[#7fa589]" />
-                        <span className="font-semibold text-[#755f52]">
-                          {formData.selectedServices.length} service{formData.selectedServices.length !== 1 ? 's' : ''} selected
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setFormData(prev => ({ ...prev, selectedServices: [] }))}
-                        className="text-xs text-gray-600 hover:text-gray-900"
-                      >
-                        Clear all
-                      </Button>
+              <>
+                <div>
+                  <Label>Investigation / Service Type *</Label>
+                  {loadingServices ? (
+                    <div className="flex justify-center py-6">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E2582A]" />
                     </div>
-                  </div>
-                )}
-
-                {/* Recommendations */}
-                {recommendedServices.length > 0 && formData.selectedServices.length === 0 && (
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4">
-                    <div className="flex items-start gap-3 mb-3">
-                      <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-1">Recommended for your event</h4>
-                        <p className="text-sm text-gray-600">Based on your venue type: {formData.venueType}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {recommendedServices.map(service => (
-                        <Button
-                          key={service.id}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleService(service.id)}
-                          className="text-xs border-blue-300 hover:bg-blue-100"
-                        >
-                          {getCategoryIcon(service.category)}
-                          <span className="ml-2">{service.serviceName}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Search and Filters */}
-                <div className="space-y-3">
-                  {/* Search Bar */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <Input
-                      placeholder="Search services by name, type, or description..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 h-12 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl"
-                    />
-                  </div>
-
-                  {/* Filter Controls */}
-                  <div className="flex flex-wrap gap-3 items-center">
-                    {/* Category Tabs */}
-                    <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="flex-1">
-                      <TabsList className="grid w-full grid-cols-4 bg-gray-100">
-                        <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
-                        <TabsTrigger value="photography" className="text-xs sm:text-sm">
-                          <Camera className="w-4 h-4 mr-1" />
-                          Photo
-                        </TabsTrigger>
-                        <TabsTrigger value="videography" className="text-xs sm:text-sm">
-                          <Video className="w-4 h-4 mr-1" />
-                          Video
-                        </TabsTrigger>
-                        <TabsTrigger value="audio" className="text-xs sm:text-sm">
-                          <Music className="w-4 h-4 mr-1" />
-                          Audio
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-
-                    {/* Parish Match Toggle */}
-                    {formData.parish && (
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="parishMatch"
-                          checked={showParishMatch}
-                          onCheckedChange={setShowParishMatch}
-                        />
-                        <Label htmlFor="parishMatch" className="text-sm cursor-pointer flex items-center gap-1">
-                          <MapPin className="w-4 h-4 text-[#BDFF1C]" />
-                          {formData.parish} only
-                        </Label>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Results Count */}
-                  <div className="text-xs text-gray-500">
-                    Showing {filteredServices.length} of {availableServices.length} services
-                  </div>
-                </div>
-
-                {/* Service Cards */}
-                {loadingServices ? (
-                  <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#BDFF1C]"></div>
-                  </div>
-                ) : filteredServices.length === 0 ? (
-                  <div className="text-center py-12 bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] rounded-xl">
-                    <Search className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-semibold text-gray-700 mb-1">No services found</h3>
-                    <p className="text-sm text-gray-500">Try adjusting your search or filters</p>
-                    {(searchQuery || categoryFilter !== 'all' || showParishMatch) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setCategoryFilter('all');
-                          setShowParishMatch(false);
-                        }}
-                        className="mt-4"
-                      >
-                        Clear filters
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                    {filteredServices.map(service => {
-                      const isSelected = formData.selectedServices.includes(service.id);
-                      const availableHere = isAvailableInParish(service);
-                      
-                      return (
-                        <div 
-                          key={service.id} 
-                          className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-200 ${
-                            isSelected 
-                              ? 'border-[#BDFF1C] bg-[#BDFF1C]/10 shadow-lg transform scale-[1.02]' 
-                              : 'border-gray-200 hover:border-[#BDFF1C]/50 hover:shadow-md'
-                          }`}
-                          onClick={() => toggleService(service.id)}
-                        >
-                          <div className="flex items-start gap-4">
-                            {/* Icon */}
-                            <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                              isSelected ? 'bg-[#BDFF1C] text-white' : 'bg-[#755f52]/10 text-[#755f52]'
-                            }`}>
-                              {getCategoryIcon(service.category)}
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                              {/* Header */}
-                              <div className="flex items-start justify-between gap-3 mb-2">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <h3 className="text-lg font-bold text-[#755f52]">{service.serviceName}</h3>
-                                    {isSelected && (
-                                      <CheckCircle2 className="w-5 h-5 text-[#BDFF1C] flex-shrink-0" />
-                                    )}
-                                  </div>
-                                  <div className="flex flex-wrap gap-2 items-center">
-                                    <Badge className="bg-[#755f52] text-[#c9a882] text-xs">ECJ-Vetted</Badge>
-                                    {service.subType && (
-                                      <Badge variant="outline" className="text-xs border-[#755f52] text-[#755f52]">
-                                        <Tag className="w-3 h-3 mr-1" />
-                                        {service.subType}
-                                      </Badge>
-                                    )}
-                                    {availableHere && formData.parish && (
-                                      <Badge className="bg-[#BDFF1C] text-white text-xs">
-                                        <MapPin className="w-3 h-3 mr-1" />
-                                        {formData.parish}
-                                      </Badge>
-                                    )}
-                                    {!availableHere && formData.parish && showParishMatch && (
-                                      <Badge variant="outline" className="text-xs border-gray-300 text-gray-500">
-                                        <MapPin className="w-3 h-3 mr-1" />
-                                        Other parishes
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
+                  ) : (
+                    <div className="grid gap-3 mt-2">
+                      {serviceTypes.map((st) => {
+                        const isSelected = formData.serviceTypeId === st.id;
+                        return (
+                          <div
+                            key={st.id}
+                            className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${
+                              isSelected
+                                ? 'border-[#E2582A] bg-[#E2582A]/5 shadow-md'
+                                : 'border-gray-200 hover:border-[#E2582A]/40 hover:shadow-sm'
+                            }`}
+                            onClick={() => {
+                              updateFormData('serviceTypeId', st.id);
+                              updateFormData('investigationType', st.name);
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                isSelected ? 'bg-[#E2582A] text-white' : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                <HardHat className="w-5 h-5" />
                               </div>
-
-                              {/* Description */}
-                              <p className="text-sm text-gray-700 mb-3 leading-relaxed">{service.description}</p>
-
-                              {/* Good For Tags */}
-                              {service.goodFor && service.goodFor.length > 0 && (
-                                <div className="mb-3">
-                                  <p className="text-xs font-semibold text-gray-600 mb-1">Perfect for:</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {service.goodFor.map((tag: string, i: number) => (
-                                      <span 
-                                        key={i} 
-                                        className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full"
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-semibold text-gray-900">{st.name}</h4>
+                                  {isSelected && <CheckCircle2 className="w-5 h-5 text-[#E2582A]" />}
                                 </div>
-                              )}
-
-                              {/* Deliverables */}
-                              {service.deliverables && service.deliverables.length > 0 && (
-                                <div className="border-t border-gray-200 pt-3">
-                                  <p className="text-xs font-semibold text-gray-700 mb-2">What's included:</p>
-                                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {service.deliverables.slice(0, 4).map((item: string, i: number) => (
-                                      <li key={i} className="text-xs text-gray-600 flex items-start gap-2">
-                                        <CheckCircle2 className="w-3 h-3 text-[#BDFF1C] mt-0.5 flex-shrink-0" />
-                                        <span>{item}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                  {service.deliverables.length > 4 && (
-                                    <p className="text-xs text-gray-500 mt-2">
-                                      +{service.deliverables.length - 4} more deliverable{service.deliverables.length - 4 !== 1 ? 's' : ''}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Parish Coverage */}
-                              {service.coverageParishes && service.coverageParishes.length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-gray-200">
-                                  <p className="text-xs font-semibold text-gray-600 mb-1">Coverage areas:</p>
-                                  <p className="text-xs text-gray-500">
-                                    {service.coverageParishes.slice(0, 5).join(', ')}
-                                    {service.coverageParishes.length > 5 && ` +${service.coverageParishes.length - 5} more`}
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Trust Metrics */}
-                              {(service.totalEventsDelivered > 0 || service.averageRating > 0) && (
-                                <div className="mt-3 pt-3 border-t border-gray-200 flex gap-4">
-                                  {service.totalEventsDelivered > 0 && (
-                                    <div className="text-xs">
-                                      <span className="font-semibold text-[#755f52]">{service.totalEventsDelivered}</span>
-                                      <span className="text-gray-500"> events delivered</span>
-                                    </div>
-                                  )}
-                                  {service.onTimeDeliveryRate && (
-                                    <div className="text-xs">
-                                      <span className="font-semibold text-[#BDFF1C]">{service.onTimeDeliveryRate}%</span>
-                                      <span className="text-gray-500"> on-time</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                                {st.description && (
+                                  <p className="text-sm text-gray-600 mt-0.5">{st.description}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
-                {/* Validation Message */}
-                {!canProceedStep2 && !loadingServices && availableServices.length > 0 && (
-                  <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-center gap-3">
-                    <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                    <p className="text-sm text-red-800">Please select at least one service to continue</p>
+                <div>
+                  <Label htmlFor="surveyAreaSqm">
+                    <div className="flex items-center gap-2">
+                      <Ruler className="w-4 h-4" />
+                      Survey Area (sq metres) *
+                    </div>
+                  </Label>
+                  <Input
+                    id="surveyAreaSqm"
+                    type="number"
+                    placeholder="e.g. 3570"
+                    value={formData.surveyAreaSqm}
+                    onChange={(e) => updateFormData('surveyAreaSqm', e.target.value)}
+                    className="mt-1 cursor-text"
+                    min="0"
+                    step="0.01"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Total area to be surveyed in square metres</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="investigationType">Investigation Type (optional override)</Label>
+                  <Input
+                    id="investigationType"
+                    placeholder="Auto-filled from selection above"
+                    value={formData.investigationType}
+                    onChange={(e) => updateFormData('investigationType', e.target.value)}
+                    className="mt-1 cursor-text"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Defaults to the service type above. Override if your investigation is more specific.
+                  </p>
+                </div>
+
+                {/* Estimated area info */}
+                {formData.surveyAreaSqm && parseFloat(formData.surveyAreaSqm) > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div className="text-sm text-blue-900">
+                        <p className="font-semibold mb-1">Area Summary</p>
+                        <p>{parseFloat(formData.surveyAreaSqm).toLocaleString()} sq m
+                          {parseFloat(formData.surveyAreaSqm) > 5000 && (
+                            <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
+                              Volume discount eligible
+                            </Badge>
+                          )}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
+              </>
             )}
 
-            {/* Step 3: Deliverables & Requirements - OPTIMIZED */}
+            {/* ── STEP 3: Site Logistics ── */}
             {step === 3 && (
-              <div className="space-y-6">
-                {/* Selected Services Summary */}
-                <div className="bg-gradient-to-br from-[#755f52]/5 to-[#c9a882]/10 border-2 border-[#755f52]/20 rounded-xl p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle2 className="w-5 h-5 text-[#BDFF1C]" />
-                    <h3 className="font-bold text-[#755f52]">Your Selected Services</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {selectedServiceObjects.map((service, index) => (
-                      <div key={service.id} className="bg-white rounded-lg p-4 border border-[#755f52]/10">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-[#BDFF1C] text-white flex items-center justify-center flex-shrink-0">
-                            {getCategoryIcon(service.category)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-[#755f52]">{service.serviceName}</h4>
-                              <Badge className="bg-[#755f52] text-[#c9a882] text-xs">{service.category}</Badge>
-                            </div>
-                            <p className="text-xs text-gray-600 mb-2">{service.description}</p>
-                            
-                            {/* Deliverables included */}
-                            {service.deliverables && service.deliverables.length > 0 && (
-                              <div className="mt-2">
-                                <p className="text-xs font-semibold text-gray-700 mb-1">What's included:</p>
-                                <ul className="grid grid-cols-1 gap-1">
-                                  {service.deliverables.slice(0, 3).map((item: string, i: number) => (
-                                    <li key={i} className="text-xs text-gray-600 flex items-start gap-1">
-                                      <CheckCircle2 className="w-3 h-3 text-[#BDFF1C] mt-0.5 flex-shrink-0" />
-                                      <span>{item}</span>
-                                    </li>
-                                  ))}
-                                  {service.deliverables.length > 3 && (
-                                    <li className="text-xs text-gray-500 ml-4">
-                                      +{service.deliverables.length - 3} more items
-                                    </li>
-                                  )}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Total deliverables count */}
-                  <div className="mt-4 pt-4 border-t border-[#755f52]/10 flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Total deliverables across all services:</span>
-                    <span className="font-bold text-[#755f52]">{getTotalDeliverables()}+ items</span>
-                  </div>
-                </div>
-
-                {/* Turnaround Time */}
-                <div>
-                  <Label htmlFor="turnaround" className="text-base font-semibold text-[#755f52] mb-2 block">
-                    Turnaround Time *
-                  </Label>
-                  <p className="text-sm text-gray-600 mb-3">
-                    How quickly do you need your deliverables?
-                  </p>
-                  <Select value={formData.turnaround} onValueChange={(value) => updateFormData('turnaround', value)}>
-                    <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-[#BDFF1C]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="standard">
-                        <div className="flex items-center gap-2 py-1">
-                          <div>
-                            <p className="font-semibold">Standard (7-14 days)</p>
-                            <p className="text-xs text-gray-500">Most economical option</p>
-                          </div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="rush">
-                        <div className="flex items-center gap-2 py-1">
-                          <div>
-                            <p className="font-semibold">Rush (3-5 days)</p>
-                            <p className="text-xs text-gray-500">Priority processing</p>
-                          </div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="express">
-                        <div className="flex items-center gap-2 py-1">
-                          <div>
-                            <p className="font-semibold">Express (24-48 hours)</p>
-                            <p className="text-xs text-gray-500">Fastest turnaround</p>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Budget */}
-                <div>
-                  <Label htmlFor="budget" className="text-base font-semibold text-[#755f52] mb-2 block">
-                    Budget Range (Optional)
-                  </Label>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Help us understand your budget expectations
-                  </p>
-                  <Input
-                    id="budget"
-                    placeholder="e.g., $500-$1000 or JMD 75,000-150,000"
-                    value={formData.budget}
-                    onChange={(e) => updateFormData('budget', e.target.value)}
-                    className="h-12 border-2 border-gray-200 focus:border-[#BDFF1C]"
-                  />
-                </div>
-
-                {/* Special Requirements / Notes */}
-                <div>
-                  <Label htmlFor="notes" className="text-base font-semibold text-[#755f52] mb-2 block">
-                    Special Requirements or Notes (Optional)
-                  </Label>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Any specific needs, preferences, or important details we should know?
-                  </p>
-                  <Textarea
-                    id="notes"
-                    placeholder="Examples: Need drone footage, specific color grading style, VIP coverage requirements, accessibility needs, etc."
-                    rows={5}
-                    value={formData.notes}
-                    onChange={(e) => updateFormData('notes', e.target.value)}
-                    className="border-2 border-gray-200 focus:border-[#BDFF1C] resize-none"
-                  />
-                </div>
-
-                {/* ECJ Guarantee Badge */}
-                <div className="bg-gradient-to-r from-[#BDFF1C]/10 to-[#7fa589]/10 border-2 border-[#BDFF1C] rounded-xl p-5">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#BDFF1C] flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-6 h-6 text-white" />
-                    </div>
+              <>
+                <div className="space-y-4">
+                  {/* Clearance & Access */}
+                  <div className="flex items-start gap-3 p-4 border rounded-xl border-gray-200">
+                    <Checkbox
+                      id="clearanceAccess"
+                      checked={formData.clearanceAccess}
+                      onCheckedChange={(checked) => updateFormData('clearanceAccess', !!checked)}
+                      className="mt-1"
+                    />
                     <div>
-                      <h4 className="font-bold text-[#755f52] mb-1">ECJ Quality Guarantee</h4>
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        All services are backed by our professional guarantee. If you're not satisfied with the quality, 
-                        we'll make it right—no questions asked.
+                      <Label htmlFor="clearanceAccess" className="cursor-pointer font-semibold text-gray-900">
+                        Site Clearance & Access Required
+                      </Label>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Check if the site requires clearance, permissions, or special access arrangements
                       </p>
                     </div>
                   </div>
+
+                  {/* Mobilization */}
+                  <div className="p-4 border rounded-xl border-gray-200 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="mobilizationNeeded"
+                        checked={formData.mobilizationNeeded}
+                        onCheckedChange={(checked) => updateFormData('mobilizationNeeded', !!checked)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <Label htmlFor="mobilizationNeeded" className="cursor-pointer font-semibold text-gray-900">
+                          Mobilization Required
+                        </Label>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Equipment transport and crew deployment to site
+                        </p>
+                      </div>
+                    </div>
+                    {formData.mobilizationNeeded && (
+                      <div className="ml-8">
+                        <Label htmlFor="mobilizationCost" className="text-sm">
+                          Estimated Mobilization Budget (JMD)
+                        </Label>
+                        <Input
+                          id="mobilizationCost"
+                          type="number"
+                          placeholder="e.g. 45000"
+                          value={formData.mobilizationCost}
+                          onChange={(e) => updateFormData('mobilizationCost', e.target.value)}
+                          className="mt-1 cursor-text"
+                          min="0"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Leave blank if you'd prefer us to estimate
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accommodation */}
+                  <div className="p-4 border rounded-xl border-gray-200 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="accommodationNeeded"
+                        checked={formData.accommodationNeeded}
+                        onCheckedChange={(checked) => updateFormData('accommodationNeeded', !!checked)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <Label htmlFor="accommodationNeeded" className="cursor-pointer font-semibold text-gray-900">
+                          Accommodation & Subsistence Required
+                        </Label>
+                        <p className="text-sm text-gray-600 mt-1">
+                          For remote or multi-day projects requiring overnight stays
+                        </p>
+                      </div>
+                    </div>
+                    {formData.accommodationNeeded && (
+                      <div className="ml-8">
+                        <Label htmlFor="accommodationCost" className="text-sm">
+                          Estimated Accommodation Budget (JMD)
+                        </Label>
+                        <Input
+                          id="accommodationCost"
+                          type="number"
+                          placeholder="e.g. 50000"
+                          value={formData.accommodationCost}
+                          onChange={(e) => updateFormData('accommodationCost', e.target.value)}
+                          className="mt-1 cursor-text"
+                          min="0"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Head count */}
+                  <div>
+                    <Label htmlFor="serviceHeadCount">Service Crew Head Count</Label>
+                    <Select
+                      value={formData.serviceHeadCount}
+                      onValueChange={(val) => updateFormData('serviceHeadCount', val)}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <SelectItem key={n} value={n.toString()}>
+                            {n} {n === 1 ? 'person' : 'people'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Estimated crew needed for this project (we'll confirm in the quote)
+                    </p>
+                  </div>
+
+                  {/* Additional notes */}
+                  <div>
+                    <Label htmlFor="notes" className="font-semibold text-gray-900">
+                      Additional Notes / Requirements
+                    </Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Any special requirements, access instructions, safety considerations, preferred schedule, etc."
+                      rows={4}
+                      value={formData.notes}
+                      onChange={(e) => updateFormData('notes', e.target.value)}
+                      className="mt-1 cursor-text resize-none"
+                    />
+                  </div>
+
+                  {/* Attachments (optional) */}
+                  <div className="p-4 border rounded-xl border-gray-200">
+                    <Label className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Paperclip className="w-4 h-4" />
+                      Attachments (optional)
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-1 mb-2">
+                      PDF, images, Word, Excel, or text. Max {MAX_FILE_SIZE_MB}MB per file, up to {MAX_ATTACHMENTS} files.
+                    </p>
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/jpeg,image/png,image/gif,image/webp"
+                      onChange={(e) => addAttachmentFiles(e.target.files)}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-gray-300 file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 cursor-pointer"
+                    />
+                    {attachments.length > 0 && (
+                      <ul className="mt-3 space-y-1.5">
+                        {attachments.map((file, i) => (
+                          <li key={`${file.name}-${i}`} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                            <span className="truncate text-gray-700">{file.name}</span>
+                            <span className="text-gray-500 shrink-0 ml-2">{(file.size / 1024).toFixed(1)} KB</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0 h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => removeAttachment(i)}
+                              aria-label={`Remove ${file.name}`}
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Step 4: Review & Submit - OPTIMIZED */}
+            {/* ── STEP 4: Review & Submit ── */}
             {step === 4 && (
               <div className="space-y-5">
-                {/* Header */}
                 <div className="text-center pb-4 border-b border-gray-200">
-                  <h3 className="text-2xl font-bold text-[#755f52] mb-2">Almost There!</h3>
-                  <p className="text-gray-600">Review your request before submitting to ECJ</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">Review Your Request for Quote</h3>
+                  <p className="text-gray-600 text-sm">Please confirm the details below before submitting</p>
                 </div>
 
-                {/* Event Information */}
-                <div className="bg-gradient-to-br from-[#755f52]/5 to-[#c9a882]/10 rounded-xl p-5 border-2 border-[#755f52]/20">
-                  <h3 className="font-bold text-[#755f52] mb-3 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#755f52] text-white flex items-center justify-center text-sm">
-                      1
-                    </div>
-                    Event Information
-                  </h3>
-                  <div className="space-y-2 text-sm ml-10">
+                {/* Project Info */}
+                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                  <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-[#E2582A] text-white flex items-center justify-center text-xs font-bold">1</div>
+                    Project Information
+                  </h4>
+                  <div className="space-y-3 text-sm ml-9">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Event Name:</span>
-                      <span className="font-semibold text-gray-900">{formData.eventName}</span>
+                      <span className="text-gray-600">Project Name:</span>
+                      <span className="font-semibold text-gray-900">{formData.projectName}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 block mb-1">Description:</span>
+                      <p className="text-gray-900 text-sm leading-relaxed whitespace-pre-wrap bg-white rounded-lg border border-gray-100 p-3">
+                        {formData.projectDescription}
+                      </p>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Date:</span>
+                      <span className="text-gray-600">Location:</span>
+                      <span className="font-semibold text-gray-900">{formData.projectLocation}</span>
+                    </div>
+                    {formData.projectAddress && (
+                      <div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Site Address:</span>
+                          <span className="font-semibold text-gray-900 text-right max-w-[60%]">{formData.projectAddress}</span>
+                        </div>
+                        {formData.projectAddressLat && formData.projectAddressLng && (
+                          <div className="flex items-center gap-1.5 mt-1 text-xs text-green-700">
+                            <MapPin className="w-3 h-3" />
+                            <span>GPS: {formData.projectAddressLat.toFixed(5)}, {formData.projectAddressLng.toFixed(5)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {formData.clientAddress && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Your Address:</span>
+                        <span className="font-semibold text-gray-900 text-right max-w-[60%]">{formData.clientAddress}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Survey Details */}
+                <div className="bg-[#E2582A]/5 rounded-xl p-5 border border-[#E2582A]/20">
+                  <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-[#E2582A] text-white flex items-center justify-center text-xs font-bold">2</div>
+                    Survey Details
+                  </h4>
+                  <div className="space-y-2 text-sm ml-9">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Service Type:</span>
+                      <Badge className="bg-[#E2582A] text-white">{getSelectedServiceName()}</Badge>
+                    </div>
+                    {formData.investigationType && formData.investigationType !== getSelectedServiceName() && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Investigation Type:</span>
+                        <span className="font-semibold text-gray-900">{formData.investigationType}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Survey Area:</span>
                       <span className="font-semibold text-gray-900">
-                        {new Date(formData.eventDate).toLocaleDateString('en-US', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })}
+                        {parseFloat(formData.surveyAreaSqm).toLocaleString()} sq m
                       </span>
                     </div>
-                    {formData.eventTime && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Time:</span>
-                        <span className="font-semibold text-gray-900">{formData.eventTime}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Parish:</span>
-                      <span className="font-semibold text-gray-900">{formData.parish}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Venue:</span>
-                      <span className="font-semibold text-gray-900">{formData.venue}</span>
-                    </div>
-                    {formData.venueType && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Venue Type:</span>
-                        <span className="font-semibold text-gray-900 capitalize">{formData.venueType}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                {/* Selected Services */}
-                <div className="bg-gradient-to-br from-[#BDFF1C]/10 to-[#7fa589]/10 rounded-xl p-5 border-2 border-[#BDFF1C]/50">
-                  <h3 className="font-bold text-[#755f52] mb-3 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#BDFF1C] text-white flex items-center justify-center text-sm">
-                      2
-                    </div>
-                    Selected Services ({selectedServiceObjects.length})
-                  </h3>
-                  <div className="space-y-3 ml-10">
-                    {selectedServiceObjects.map((service, index) => (
-                      <div key={service.id} className="bg-white rounded-lg p-4 border border-[#755f52]/10">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-[#BDFF1C] text-white flex items-center justify-center flex-shrink-0">
-                            {getCategoryIcon(service.category)}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="font-bold text-[#755f52]">{service.serviceName}</h4>
-                              <Badge className="bg-[#755f52] text-[#c9a882] text-xs capitalize">{service.category}</Badge>
-                            </div>
-                            <p className="text-xs text-gray-600 mb-2">{service.description}</p>
-                            
-                            {service.deliverables && service.deliverables.length > 0 && (
-                              <div className="mt-2 pt-2 border-t border-gray-200">
-                                <p className="text-xs font-semibold text-gray-700 mb-1">Includes:</p>
-                                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                                  {service.deliverables.slice(0, 4).map((item: string, i: number) => (
-                                    <li key={i} className="text-xs text-gray-600 flex items-start gap-1">
-                                      <CheckCircle2 className="w-3 h-3 text-[#BDFF1C] mt-0.5 flex-shrink-0" />
-                                      <span>{item}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                                {service.deliverables.length > 4 && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    +{service.deliverables.length - 4} more items
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Requirements & Timeline */}
-                <div className="bg-white rounded-xl p-5 border-2 border-gray-200">
-                  <h3 className="font-bold text-[#755f52] mb-3 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#755f52] text-white flex items-center justify-center text-sm">
-                      3
-                    </div>
-                    Requirements & Timeline
-                  </h3>
-                  <div className="space-y-3 text-sm ml-10">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Turnaround Time:</span>
-                      <Badge className="bg-blue-100 text-blue-800 capitalize">
-                        {formData.turnaround === 'standard' && 'Standard (7-14 days)'}
-                        {formData.turnaround === 'rush' && 'Rush (3-5 days)'}
-                        {formData.turnaround === 'express' && 'Express (24-48 hours)'}
-                      </Badge>
-                    </div>
-                    
-                    {formData.budget && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Budget Range:</span>
-                        <span className="font-semibold text-gray-900">{formData.budget}</span>
-                      </div>
-                    )}
-
+                {/* Logistics */}
+                <div className="bg-white rounded-xl p-5 border border-gray-200">
+                  <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-gray-800 text-white flex items-center justify-center text-xs font-bold">3</div>
+                    Site Logistics
+                  </h4>
+                  <div className="space-y-2 text-sm ml-9">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Total Deliverables:</span>
-                      <span className="font-semibold text-gray-900">{getTotalDeliverables()}+ items</span>
+                      <span className="text-gray-600">Clearance & Access:</span>
+                      <span className={`font-semibold ${formData.clearanceAccess ? 'text-green-700' : 'text-gray-500'}`}>
+                        {formData.clearanceAccess ? 'Required' : 'Not needed'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Mobilization:</span>
+                      <span className={`font-semibold ${formData.mobilizationNeeded ? 'text-green-700' : 'text-gray-500'}`}>
+                        {formData.mobilizationNeeded
+                          ? (formData.mobilizationCost ? `JMD ${parseFloat(formData.mobilizationCost).toLocaleString()}` : 'Required (TBD)')
+                          : 'Not needed'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Accommodation:</span>
+                      <span className={`font-semibold ${formData.accommodationNeeded ? 'text-green-700' : 'text-gray-500'}`}>
+                        {formData.accommodationNeeded
+                          ? (formData.accommodationCost ? `JMD ${parseFloat(formData.accommodationCost).toLocaleString()}` : 'Required (TBD)')
+                          : 'Not needed'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Crew Size:</span>
+                      <span className="font-semibold text-gray-900">
+                        {formData.serviceHeadCount} {parseInt(formData.serviceHeadCount) === 1 ? 'person' : 'people'}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Special Notes */}
+                {/* Notes */}
                 {formData.notes && (
-                  <div className="bg-amber-50 rounded-xl p-5 border-2 border-amber-200">
-                    <h3 className="font-bold text-amber-900 mb-2 flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm">
-                        !
-                      </div>
-                      Special Requirements
-                    </h3>
-                    <p className="text-sm text-amber-900 ml-10 leading-relaxed whitespace-pre-wrap">{formData.notes}</p>
+                  <div className="bg-amber-50 rounded-xl p-5 border border-amber-200">
+                    <h4 className="font-bold text-amber-900 mb-2 flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Additional Notes
+                    </h4>
+                    <p className="text-sm text-amber-900 whitespace-pre-wrap">{formData.notes}</p>
                   </div>
                 )}
 
-                {/* ECJ Guarantee */}
-                <div className="bg-gradient-to-r from-[#BDFF1C]/20 to-[#7fa589]/20 border-2 border-[#BDFF1C] rounded-xl p-5">
+                {/* Attachments */}
+                {attachments.length > 0 && (
+                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                    <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                      <Paperclip className="w-5 h-5" />
+                      Attachments ({attachments.length})
+                    </h4>
+                    <ul className="text-sm text-gray-700 space-y-1">
+                      {attachments.map((f, i) => (
+                        <li key={`${f.name}-${i}`}>{f.name} ({(f.size / 1024).toFixed(1)} KB)</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* What happens next */}
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#BDFF1C] flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-7 h-7 text-white" />
+                    <div className="w-10 h-10 rounded-full bg-[#E2582A] flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-[#755f52] text-lg mb-2">What Happens Next?</h4>
+                      <h4 className="font-bold text-gray-900 mb-2">What Happens Next?</h4>
                       <ul className="space-y-2 text-sm text-gray-700">
                         <li className="flex items-start gap-2">
-                          <span className="text-[#BDFF1C] font-bold">1.</span>
-                          <span>Your request will be reviewed by our team within 24 hours</span>
+                          <span className="text-[#E2582A] font-bold">1.</span>
+                          <span>Our engineering team reviews your RFQ within 24–48 hours</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-[#BDFF1C] font-bold">2.</span>
-                          <span>We'll match you with the best available talent for your event</span>
+                          <span className="text-[#E2582A] font-bold">2.</span>
+                          <span>We prepare a detailed project quotation with pricing breakdown</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-[#BDFF1C] font-bold">3.</span>
-                          <span>You'll receive a detailed quote and confirmation</span>
+                          <span className="text-[#E2582A] font-bold">3.</span>
+                          <span>You review the quote and accept or request adjustments</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-[#BDFF1C] font-bold">4.</span>
-                          <span>All work is backed by our quality guarantee</span>
+                          <span className="text-[#E2582A] font-bold">4.</span>
+                          <span>Upon acceptance, 40% prepayment secures your project schedule</span>
                         </li>
                       </ul>
                     </div>
                   </div>
                 </div>
 
-                {/* Confirmation Message */}
-                <div className="bg-gradient-to-br from-[#755f52]/5 to-[#c9a882]/5 rounded-xl p-5 border border-[#755f52]/20 text-center">
-                  <p className="text-sm text-gray-700">
-                    By submitting this request, you agree to ECJ's <span className="text-[#755f52] font-semibold cursor-pointer hover:underline">terms of service</span> and understand that final pricing will be provided after review.
-                  </p>
+                <div className="text-center text-xs text-gray-500">
+                  By submitting, you acknowledge that final pricing will be provided in the formal quotation.
                 </div>
               </div>
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 pt-6 border-t">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-6 border-t">
               <Button
                 variant="outline"
                 onClick={() => setStep(step - 1)}
                 disabled={step === 1}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap order-2 sm:order-1"
+                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 order-2 sm:order-1"
               >
-                <ArrowLeft className="w-4 h-4 sm:mr-2 shrink-0" />
+                <ArrowLeft className="w-4 h-4 mr-2 shrink-0" />
                 Previous
               </Button>
 
@@ -1001,22 +870,23 @@ export default function CreateRequestWizard({ serverUrl, accessToken, onClose, o
                 <Button
                   onClick={() => setStep(step + 1)}
                   disabled={(step === 1 && !canProceedStep1) || (step === 2 && !canProceedStep2)}
-                  className="w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap order-1 sm:order-2"
+                  className="w-full sm:w-auto min-h-[44px] sm:min-h-0 order-1 sm:order-2 bg-[#E2582A] hover:bg-[#c94a22]"
                 >
                   Next
-                  <ArrowRight className="w-4 h-4 sm:ml-2 shrink-0" />
+                  <ArrowRight className="w-4 h-4 ml-2 shrink-0" />
                 </Button>
               ) : (
-                <Button 
-                  onClick={handleSubmit} 
-                  className="bg-green-600 hover:bg-green-700 w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap order-1 sm:order-2"
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="w-full sm:w-auto min-h-[44px] sm:min-h-0 order-1 sm:order-2 bg-green-600 hover:bg-green-700"
                 >
-                  <span className="hidden sm:inline">Submit Request</span>
-                  <span className="sm:hidden">Submit</span>
-                  <Check className="w-4 h-4 sm:ml-2 shrink-0" />
+                  {submitting ? 'Submitting...' : 'Submit Request for Quote'}
+                  {!submitting && <Check className="w-4 h-4 ml-2 shrink-0" />}
                 </Button>
               )}
             </div>
+
           </CardContent>
         </Card>
       </div>

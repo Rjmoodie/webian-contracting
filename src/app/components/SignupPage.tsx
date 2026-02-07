@@ -5,12 +5,13 @@ import { Label } from '@/app/components/ui/label';
 import { Card } from '@/app/components/ui/card';
 import { toast } from 'sonner';
 import { Camera, ArrowLeft, Lock, Mail, User, Briefcase, Shield, Users } from 'lucide-react';
-import ECJLogo from '@/app/components/ECJLogo';
+import BrandLogo from '@/app/components/ECJLogo';
+import { getBranding, getContent } from '@/app/config';
 
 interface SignupPageProps {
-  onSignup: (email: string, password: string, name: string, role: string, company?: string) => Promise<void>;
+  onSignup: (email: string, password: string, name: string, role: string, company?: string, adminSignup?: boolean) => Promise<void>;
   onNavigate: (page: string) => void;
-  adminOnly?: boolean; // If true, only show admin role option
+  adminOnly?: boolean; // If true, only show admin role option and send adminSignup to backend
 }
 
 type FormState = {
@@ -31,40 +32,45 @@ const INITIAL_STATE: FormState = {
   company: '',
 };
 
+const ROLE_ICONS = { client: Users, talent: Camera, admin: Shield } as const;
+
 export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: SignupPageProps) {
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [loading, setLoading] = useState(false);
+  const branding = getBranding();
+  const content = getContent();
+  const signupContent = content?.signup;
 
   const roleOptions = useMemo(() => {
+    const roles = signupContent?.roles;
     const base = [
       {
-        value: 'client',
-        label: 'Book Event Coverage',
-        description: 'Find & hire talent',
-        Icon: Users,
-        iconClass: 'text-[#BDFF1C]',
+        value: 'client' as const,
+        label: roles?.client?.label ?? 'Book Event Coverage',
+        description: roles?.client?.description ?? 'Find & hire talent',
+        Icon: ROLE_ICONS.client,
+        iconClass: 'text-primary',
         visible: !adminOnly,
       },
       {
-        value: 'talent',
-        label: 'Offer My Services',
-        description: 'Photography & video',
-        Icon: Camera,
-        iconClass: 'text-[#BDFF1C]',
+        value: 'talent' as const,
+        label: roles?.talent?.label ?? 'Offer My Services',
+        description: roles?.talent?.description ?? 'Photography & video',
+        Icon: ROLE_ICONS.talent,
+        iconClass: 'text-primary',
         visible: !adminOnly,
       },
       {
-        value: 'admin',
-        label: 'Admin Access',
-        description: 'Manage platform',
-        Icon: Shield,
-        iconClass: 'text-[#755f52]',
+        value: 'admin' as const,
+        label: roles?.admin?.label ?? 'Admin Access',
+        description: roles?.admin?.description ?? 'Manage platform',
+        Icon: ROLE_ICONS.admin,
+        iconClass: 'text-secondary',
         visible: true,
       },
     ];
-
     return base.filter((r) => r.visible);
-  }, [adminOnly]);
+  }, [adminOnly, signupContent?.roles]);
 
   const showCompany = form.role === 'client' || form.role === 'admin';
   const passwordTooShort = form.password.length > 0 && form.password.length < 6;
@@ -99,8 +105,9 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
         form.name.trim(),
         form.role,
         form.company.trim() ? form.company.trim() : undefined,
+        adminOnly,
       );
-      toast.success('Account created successfully! Welcome to ECJ.');
+      toast.success('Account created successfully.');
     } catch (error: any) {
       console.error('[SignupPage] Signup failed:', error);
       toast.error(error?.message || 'Signup failed. Please try again.');
@@ -110,23 +117,23 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5f1eb] via-[#ebe4d8] to-[#e8dfd1] scroll-smooth">
-      {/* Top Nav — solid brown matching home */}
-      <nav className="bg-[#755f52] fixed top-0 left-0 right-0 z-50 shadow-md">
+    <div className="min-h-screen bg-background scroll-smooth">
+      {/* Top Nav — matches site header (white) */}
+      <nav className="bg-white fixed top-0 left-0 right-0 z-50 border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
             <button
               type="button"
               onClick={() => onNavigate('home')}
               className="flex items-center cursor-pointer select-none"
-              aria-label="Event Coverage Jamaica – Home"
+              aria-label={`${branding.companyName} – Home`}
             >
-              <ECJLogo size="xl" className="flex-shrink-0 max-h-full" />
+              <BrandLogo size="xl" className="flex-shrink-0 max-h-full" />
             </button>
             <button
               type="button"
               onClick={() => onNavigate('login')}
-              className="text-sm font-medium text-white/90 hover:text-white transition"
+              className="text-sm font-medium text-foreground/90 hover:text-primary transition"
             >
               Sign In
             </button>
@@ -143,11 +150,15 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
           <Card className="border-0 shadow-premium-xl bg-white rounded-2xl card-premium">
             <div className="p-5 sm:p-7">
               <header className="mb-5">
-                <h2 className="text-2xl font-bold text-[#755f52] mb-1">
-                  {adminOnly ? 'Admin Signup' : 'Create Account'}
+<h2 className="typography-page-title mb-1">
+                {adminOnly
+                  ? (signupContent?.adminHeading ?? 'Admin Signup')
+                  : (signupContent?.heading ?? 'Create Account')}
                 </h2>
-                <p className="text-sm text-gray-500">
-                  {adminOnly ? 'Create an admin account' : 'Join our platform and get started today'}
+                <p className="typography-body-sm-muted">
+                  {adminOnly
+                    ? (signupContent?.adminSubheading ?? 'Create an admin account')
+                    : (signupContent?.subheading ?? 'Join our platform and get started today')}
                 </p>
               </header>
 
@@ -155,18 +166,18 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
                 {/* Row 1: Name + Email side-by-side */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="name" className="text-[#755f52] font-semibold text-sm mb-1.5 block">
+                    <Label htmlFor="name" className="typography-label mb-1.5 block">
                       Full Name
                     </Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#BDFF1C]" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                       <Input
                         id="name"
                         type="text"
                         placeholder="John Doe"
                         value={form.name}
                         onChange={(e) => setField('name', e.target.value)}
-                        className="pl-10 h-11 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl text-sm"
+                        className="pl-10 h-11 border-2 border-gray-200 focus:border-primary rounded-xl text-sm"
                         autoComplete="name"
                         required
                       />
@@ -174,18 +185,18 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
                   </div>
 
                   <div>
-                    <Label htmlFor="email" className="text-[#755f52] font-semibold text-sm mb-1.5 block">
+                    <Label htmlFor="email" className="typography-label mb-1.5 block">
                       Email Address
                     </Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#BDFF1C]" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                       <Input
                         id="email"
                         type="email"
                         placeholder="you@example.com"
                         value={form.email}
                         onChange={(e) => setField('email', e.target.value)}
-                        className="pl-10 h-11 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl text-sm"
+                        className="pl-10 h-11 border-2 border-gray-200 focus:border-primary rounded-xl text-sm"
                         autoComplete="email"
                         required
                       />
@@ -195,7 +206,9 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
 
                 {/* Row 2: Role — visual card selector */}
                 <div>
-                  <Label className="text-[#755f52] font-semibold text-sm mb-2 block">I want to...</Label>
+                  <Label className="typography-label mb-2 block">
+                    {signupContent?.roleLabel ?? 'I want to...'}
+                  </Label>
                   <div className={`grid gap-2 ${adminOnly ? 'grid-cols-1' : 'grid-cols-2'}`}>
                     {roleOptions.map(({ value, label, description, Icon, iconClass }) => (
                       <button
@@ -204,14 +217,14 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
                         onClick={() => setField('role', value)}
                         className={`flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl border-2 text-left transition-all ${
                           form.role === value
-                            ? 'border-[#BDFF1C] bg-[#BDFF1C]/10 text-[#755f52] shadow-sm'
+                            ? 'border-primary bg-primary/10 text-secondary shadow-sm'
                             : 'border-gray-200 bg-gray-50/50 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
-                        <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${form.role === value ? 'text-[#BDFF1C]' : iconClass}`} />
+                        <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${form.role === value ? 'text-primary' : iconClass}`} />
                         <div className="min-w-0">
                           <span className="text-sm font-medium leading-tight block">{label}</span>
-                          <span className="text-xs text-gray-400 leading-tight">{description}</span>
+                          <span className="typography-caption leading-tight">{description}</span>
                         </div>
                       </button>
                     ))}
@@ -221,18 +234,19 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
                 {/* Row 3: Company (conditional, animated) */}
                 {showCompany && (
                   <div>
-                    <Label htmlFor="company" className="text-[#755f52] font-semibold text-sm mb-1.5 block">
-                      Company <span className="text-gray-400 font-normal">(optional)</span>
+                    <Label htmlFor="company" className="typography-label mb-1.5 block">
+                      {signupContent?.companyLabel ?? 'Company'}{' '}
+                      <span className="text-muted-foreground font-normal">(optional)</span>
                     </Label>
                     <div className="relative">
-                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#BDFF1C]" />
+                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                       <Input
                         id="company"
                         type="text"
-                        placeholder="Your Company Name"
+                        placeholder={signupContent?.companyPlaceholder ?? 'Your Company Name'}
                         value={form.company}
                         onChange={(e) => setField('company', e.target.value)}
-                        className="pl-10 h-11 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl text-sm"
+                        className="pl-10 h-11 border-2 border-gray-200 focus:border-primary rounded-xl text-sm cursor-text"
                         autoComplete="organization"
                       />
                     </div>
@@ -242,18 +256,18 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
                 {/* Row 4: Password + Confirm side-by-side */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="password" className="text-[#755f52] font-semibold text-sm mb-1.5 block">
+                    <Label htmlFor="password" className="typography-label mb-1.5 block">
                       Password
                     </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#BDFF1C]" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                       <Input
                         id="password"
                         type="password"
                         placeholder="Min 6 characters"
                         value={form.password}
                         onChange={(e) => setField('password', e.target.value)}
-                        className="pl-10 h-11 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl text-sm"
+                        className="pl-10 h-11 border-2 border-gray-200 focus:border-primary rounded-xl text-sm"
                         autoComplete="new-password"
                         required
                         aria-invalid={passwordTooShort ? 'true' : 'false'}
@@ -265,18 +279,18 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
                   </div>
 
                   <div>
-                    <Label htmlFor="confirmPassword" className="text-[#755f52] font-semibold text-sm mb-1.5 block">
+                    <Label htmlFor="confirmPassword" className="typography-label mb-1.5 block">
                       Confirm Password
                     </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#BDFF1C]" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                       <Input
                         id="confirmPassword"
                         type="password"
                         placeholder="Re-enter password"
                         value={form.confirmPassword}
                         onChange={(e) => setField('confirmPassword', e.target.value)}
-                        className="pl-10 h-11 border-2 border-gray-200 focus:border-[#BDFF1C] rounded-xl text-sm"
+                        className="pl-10 h-11 border-2 border-gray-200 focus:border-primary rounded-xl text-sm"
                         autoComplete="new-password"
                         required
                         aria-invalid={passwordsMismatch ? 'true' : 'false'}
@@ -291,28 +305,28 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
                 {/* Submit */}
                 <Button
                   type="submit"
-                  className="button-glow w-full h-11 gradient-premium-green text-white font-semibold text-sm rounded-xl shadow-premium hover:shadow-premium-lg hover:scale-[1.02] transition-all"
+                  className="w-full min-h-[48px] bg-primary text-white font-semibold text-sm rounded-xl shadow-lg hover:opacity-90 transition-all"
                   disabled={!canSubmit}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                      Creating account...
+                      {signupContent?.creatingLabel ?? 'Creating account...'}
                     </div>
                   ) : (
-                    'Create Account'
+                    signupContent?.submitButton ?? 'Create Account'
                   )}
                 </Button>
               </form>
 
               {/* Footer */}
               <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
-                <p className="text-gray-500">
+                <p className="typography-body-muted">
                   Have an account?{' '}
                   <button
                     type="button"
                     onClick={() => onNavigate('login')}
-                    className="text-[#755f52] font-bold hover:text-[#8b7263] transition"
+                    className="typography-label hover:text-primary transition cursor-pointer"
                   >
                     Sign In
                   </button>
@@ -320,7 +334,7 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
                 <button
                   type="button"
                   onClick={() => onNavigate('home')}
-                  className="flex items-center gap-1 text-gray-400 hover:text-[#755f52] transition font-medium"
+                  className="flex items-center gap-1 typography-body-sm-muted hover:text-secondary transition cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   Home
@@ -329,8 +343,16 @@ export default function SignupPage({ onSignup, onNavigate, adminOnly = false }: 
             </div>
           </Card>
 
-          <p className="mt-3 text-center text-xs text-gray-400">
-            By creating an account, you agree to ECJ's terms and privacy policy.
+          <p className="mt-3 text-center typography-caption">
+            {signupContent?.termsPrefix ?? 'By creating an account, you agree to our'}{' '}
+            <button
+              type="button"
+              onClick={() => onNavigate('terms-policies')}
+              className="text-secondary font-medium hover:underline focus:outline-none focus:underline"
+            >
+              {signupContent?.termsLinkText ?? 'Terms & Policies'}
+            </button>
+            .
           </p>
         </div>
       </div>

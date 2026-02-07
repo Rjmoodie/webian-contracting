@@ -15,6 +15,7 @@ import { AppConfig } from './app';
 
 // Import client configurations
 import { eventCoverageJamaica } from './clients/eventCoverageJamaica';
+import { webianContracting } from './clients/webianContracting';
 import type { ClientConfig } from './types';
 
 /**
@@ -23,9 +24,7 @@ import type { ClientConfig } from './types';
  */
 const clientConfigs: Record<string, ClientConfig> = {
   'eventcoveragejamaica': eventCoverageJamaica,
-  // Add more clients here:
-  // 'client2': client2Config,
-  // 'client3': client3Config,
+  'webiancontracting': webianContracting,
 };
 
 /**
@@ -38,7 +37,7 @@ const getClientId = (): string => {
   }
   
   // Default client (can be changed here for quick switching)
-  return 'eventcoveragejamaica';
+  return 'webiancontracting';
 };
 
 /**
@@ -50,7 +49,7 @@ export const getClientConfig = (): ClientConfig => {
   
   if (!config) {
     console.warn(`Client config "${clientId}" not found. Using default.`);
-    return clientConfigs['eventcoveragejamaica'];
+    return clientConfigs['webiancontracting'];
   }
   
   return config;

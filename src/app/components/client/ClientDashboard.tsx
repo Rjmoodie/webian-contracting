@@ -6,28 +6,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { Plus, FileText, Eye, FileCheck, Clock, CheckCircle2, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabase, getFreshToken } from '/utils/supabase/client';
+import { api } from '/utils/supabase/api';
 import Navigation from '../Navigation';
 import CreateRequestWizard from './CreateRequestWizard';
 import RequestDetailsPage from '@/app/components/RequestDetailsPage';
+import ReportsListPanel from '@/app/components/ReportsListPanel';
 
 interface ClientDashboardProps {
   user: any;
-  serverUrl: string;
   accessToken: string;
   onLogout: () => void;
   onNavigate: (page: string) => void;
 }
 
-export default function ClientDashboard({ user, serverUrl, accessToken, onLogout, onNavigate }: ClientDashboardProps) {
+export default function ClientDashboard({ user, accessToken, onLogout, onNavigate }: ClientDashboardProps) {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [currentToken, setCurrentToken] = useState<string>(accessToken);
   const [backendAvailable, setBackendAvailable] = useState(true);
+  const [authErrorReason, setAuthErrorReason] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRequests();
+  }, []);
+
+  // Open create wizard when arriving from "Get a quote" (services, etc.)
+  useEffect(() => {
+    try {
+      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('openCreateWizard') === '1') {
+        sessionStorage.removeItem('openCreateWizard');
+        setShowCreateWizard(true);
+      }
+    } catch (_) {}
   }, []);
 
   // Helper: make authenticated request — single attempt + one refresh, no cascading retries
@@ -35,8 +47,9 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
     // Always get the freshest token available
     let token = await getFreshToken() || currentToken || accessToken;
 
-    if (!token) {
-      console.warn('[ClientDashboard] No access token available');
+    if (!token || !token.trim()) {
+      console.warn('[ClientDashboard] No access token available — try logging in again.');
+      setBackendAvailable(false);
       return null;
     }
 
@@ -49,20 +62,25 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
     });
 
     if (response.status === 401) {
-      // Backend rejected the token — likely a backend config issue, not a session issue
-      console.warn('[ClientDashboard] Backend returned 401. Edge function may need redeployment.');
+      let reason = 'Unauthorized';
+      try {
+        const body = await response.clone().json().catch(() => ({}));
+        reason = (body as { reason?: string })?.reason ?? (body as { error?: string })?.error ?? reason;
+      } catch (_) {}
+      console.warn('[ClientDashboard] Backend returned 401:', reason, '— Try logging out and back in, or ensure your user has a profile with role "client".');
+      setAuthErrorReason(reason);
       setBackendAvailable(false);
       return null;
     }
 
-    // If we got here the backend is working
     setBackendAvailable(true);
+    setAuthErrorReason(null);
     return response;
   };
 
   const fetchRequests = async () => {
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/requests`);
+      const response = await makeAuthenticatedRequest(`${api('projects')}`);
 
       if (!response) {
         // Authentication failed, user will be logged out
@@ -89,13 +107,17 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      submitted: 'bg-blue-100 text-blue-800',
+      rfq_submitted: 'bg-blue-100 text-blue-800',
       under_review: 'bg-yellow-100 text-yellow-800',
-      assigned: 'bg-purple-100 text-purple-800',
-      confirmed: 'bg-green-100 text-green-800',
+      quoted: 'bg-purple-100 text-purple-800',
+      quote_accepted: 'bg-green-100 text-green-800',
+      quote_rejected: 'bg-red-100 text-red-800',
       in_progress: 'bg-indigo-100 text-indigo-800',
-      delivered: 'bg-teal-100 text-teal-800',
-      closed: 'bg-gray-100 text-gray-800',
+      data_processing: 'bg-cyan-100 text-cyan-800',
+      reporting: 'bg-teal-100 text-teal-800',
+      delivered: 'bg-emerald-100 text-emerald-800',
+      completed: 'bg-green-100 text-green-800',
+      cancelled: 'bg-gray-100 text-gray-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
@@ -107,7 +129,6 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
   if (showCreateWizard) {
     return (
       <CreateRequestWizard
-        serverUrl={serverUrl}
         accessToken={accessToken}
         onClose={() => {
           setShowCreateWizard(false);
@@ -123,7 +144,6 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
       <RequestDetailsPage
         requestId={selectedRequest.id}
         user={user}
-        serverUrl={serverUrl}
         accessToken={accessToken}
         onBack={() => {
           setSelectedRequest(null);
@@ -151,27 +171,32 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Backend connectivity warning */}
         {!backendAvailable && (
-          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-3">
-            <span className="shrink-0 text-lg">&#9888;</span>
-            <span>
-              <strong>Backend unavailable</strong> — The server is not responding to authenticated requests.
-              Your data may not be up to date. The Edge Function may need to be redeployed.
-              <button onClick={() => { setBackendAvailable(true); fetchRequests(); }} className="ml-2 underline font-semibold">Retry</button>
-            </span>
+          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex flex-col gap-2">
+            <div className="flex items-start gap-3">
+              <span className="shrink-0 text-lg">&#9888;</span>
+              <div>
+                <strong>Backend unavailable</strong> — {authErrorReason ?? 'The server returned an error.'}
+                <br />
+                <span className="text-amber-700">
+                  Try logging out and back in. If the problem continues, run <strong>scripts/backfill-missing-profiles.sql</strong> in Supabase SQL Editor to create missing profiles.
+                </span>
+                <button onClick={() => { setBackendAvailable(true); setAuthErrorReason(null); fetchRequests(); }} className="ml-2 mt-1 inline-block underline font-semibold">Retry</button>
+              </div>
+            </div>
           </div>
         )}
         {/* Welcome + primary CTA */}
-        <Card className="mb-6 sm:mb-8 gradient-premium-green text-white shadow-premium-lg border-0 rounded-xl overflow-hidden">
+        <Card className="mb-6 sm:mb-8 bg-secondary text-secondary-foreground shadow-lg border-0 rounded-xl overflow-hidden">
           <CardContent className="p-5 sm:p-6 md:p-8">
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2 truncate">Welcome back, {user.name}</h1>
-                <p className="text-sm sm:text-base text-white/90">Manage requests and track your event coverage</p>
+                <h1 className="typography-page-title-hero mb-1 sm:mb-2 truncate text-white">Welcome back, {user.name}</h1>
+                <p className="typography-body-sm text-white/90">Manage project requests and track your surveys</p>
               </div>
               <Button 
                 size="lg" 
                 onClick={() => setShowCreateWizard(true)}
-                className="inline-flex items-center justify-center gap-2 bg-white text-[#755f52] hover:bg-white/95 font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0 min-h-[48px] sm:min-h-[52px] px-5 sm:px-8 w-full sm:w-auto rounded-xl"
+                className="inline-flex items-center justify-center gap-2 bg-white text-secondary hover:bg-white/95 font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0 min-h-[48px] sm:min-h-[52px] px-5 sm:px-8 w-full sm:w-auto rounded-xl"
               >
                 <Plus className="w-5 h-5 shrink-0" />
                 New request
@@ -182,14 +207,14 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Card className="card-premium hover:shadow-premium-lg transition-all hover:border-[#BDFF1C]/30 border border-transparent">
+          <Card className="card-premium hover:shadow-lg transition-all hover:border-primary/30 border border-transparent">
             <CardContent className="p-4 sm:p-5 flex flex-row items-center gap-4">
-              <div className="w-11 h-11 rounded-xl bg-[#BDFF1C]/20 flex items-center justify-center shrink-0">
-                <FileText className="w-5 h-5 text-[#755f52]" />
+              <div className="w-11 h-11 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5 text-primary" />
               </div>
               <div className="min-w-0">
-                <div className="text-2xl sm:text-3xl font-bold text-[#755f52] tracking-tight">{requests.length}</div>
-                <div className="text-xs sm:text-sm font-medium text-gray-600">Total</div>
+                <div className="typography-stat">{requests.length}</div>
+                <div className="typography-caption">Total</div>
               </div>
             </CardContent>
           </Card>
@@ -199,10 +224,10 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
                 <Clock className="w-5 h-5 text-amber-700" />
               </div>
               <div className="min-w-0">
-                <div className="text-2xl sm:text-3xl font-bold text-amber-700 tracking-tight">
-                  {requests.filter(r => r.status === 'submitted' || r.status === 'under_review').length}
+                <div className="typography-stat text-amber-700">
+                  {requests.filter(r => r.status === 'rfq_submitted' || r.status === 'under_review' || r.status === 'quoted').length}
                 </div>
-                <div className="text-xs sm:text-sm font-medium text-gray-600">Pending</div>
+                <div className="typography-caption">Pending</div>
               </div>
             </CardContent>
           </Card>
@@ -212,10 +237,10 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
                 <CheckCircle2 className="w-5 h-5 text-green-700" />
               </div>
               <div className="min-w-0">
-                <div className="text-2xl sm:text-3xl font-bold text-green-700 tracking-tight">
-                  {requests.filter(r => r.status === 'confirmed' || r.status === 'in_progress').length}
+                <div className="typography-stat text-green-700">
+                  {requests.filter(r => ['quote_accepted','in_progress','data_processing','reporting'].includes(r.status)).length}
                 </div>
-                <div className="text-xs sm:text-sm font-medium text-gray-600">Active</div>
+                <div className="typography-caption">Active</div>
               </div>
             </CardContent>
           </Card>
@@ -225,10 +250,10 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
                 <Package className="w-5 h-5 text-gray-600" />
               </div>
               <div className="min-w-0">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-700 tracking-tight">
-                  {requests.filter(r => r.status === 'delivered' || r.status === 'closed').length}
+                <div className="typography-stat text-gray-700">
+                  {requests.filter(r => r.status === 'delivered' || r.status === 'completed').length}
                 </div>
-                <div className="text-xs sm:text-sm font-medium text-gray-600">Completed</div>
+                <div className="typography-caption">Completed</div>
               </div>
             </CardContent>
           </Card>
@@ -237,13 +262,13 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
         {/* Requests Section */}
         <Card className="card-premium">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">Your Requests</CardTitle>
+            <CardTitle className="typography-section-title">Your Requests</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="rounded-xl border border-gray-200 bg-white p-5 animate-pulse">
+                  <div key={`skeleton-${i}`} className="rounded-xl border border-gray-200 bg-white p-5 animate-pulse">
                     <div className="h-5 bg-gray-200 rounded w-2/3 mb-3" />
                     <div className="h-4 bg-gray-100 rounded w-1/2 mb-4" />
                     <div className="flex gap-2 mb-4">
@@ -256,14 +281,14 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
               </div>
             ) : requests.length === 0 ? (
               <div className="text-center py-14 sm:py-16 px-4">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-[#BDFF1C]/15 border-2 border-[#BDFF1C]/30 mb-6">
-                  <FileText className="w-12 h-12 text-[#755f52]" />
+                <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-primary/15 border-2 border-primary/30 mb-6">
+                  <FileText className="w-12 h-12 text-primary" />
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">No requests yet</h3>
-                <p className="text-gray-600 mb-8 max-w-sm mx-auto text-sm sm:text-base">Request photography, videography, or audio for your next event in one simple flow.</p>
+                <h3 className="typography-card-title-lg mb-2">No requests yet</h3>
+                <p className="typography-body-sm-muted mb-8 max-w-sm mx-auto">Submit a Request for Quote for your geophysical survey or utility scan project.</p>
                 <Button 
                   onClick={() => setShowCreateWizard(true)}
-                  className="inline-flex items-center gap-2 gradient-premium-green text-white font-semibold shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all min-h-[48px] px-6 sm:px-8 whitespace-nowrap"
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold shadow-md hover:opacity-90 hover:scale-105 transition-all min-h-[48px] px-6 sm:px-8 whitespace-nowrap"
                 >
                   <Plus className="w-5 h-5 shrink-0" />
                   Create your first request
@@ -276,18 +301,14 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
                     key={request.id}
                     type="button"
                     onClick={() => setSelectedRequest(request)}
-                    className="w-full text-left card-premium border border-gray-200 rounded-xl p-4 sm:p-5 hover:shadow-premium hover:border-[#BDFF1C]/40 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#BDFF1C]/50 focus:ring-offset-2"
+                    className="w-full text-left card-premium border border-border rounded-xl p-4 sm:p-5 hover:shadow-lg hover:border-primary/40 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2"
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 mb-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg sm:text-xl text-gray-900 mb-1 truncate">{request.eventName}</h3>
-                        <p className="text-sm text-gray-600">
-                          {new Date(request.eventDate).toLocaleDateString('en-US', { 
-                            weekday: 'short', 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })} • {request.parish}
+                        <h3 className="typography-card-title mb-1 truncate">{request.eventName || request.project_name}</h3>
+                        <p className="typography-body-sm-muted">
+                          {request.parish || request.project_location}
+                          {request.project_code && ` • ${request.project_code}`}
                         </p>
                       </div>
                       <Badge className={`${getStatusColor(request.status)} shrink-0 font-medium px-3 py-1`}>
@@ -295,27 +316,27 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
                       </Badge>
                     </div>
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {request.services?.photo && (
-                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 px-2.5 py-0.5">
-                          Photography
+                      {request.serviceType && (
+                        <Badge variant="outline" className="text-xs bg-[#E2582A]/10 text-[#E2582A] border-[#E2582A]/30 px-2.5 py-0.5">
+                          {request.serviceType}
                         </Badge>
                       )}
-                      {request.services?.video && (
-                        <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 px-2.5 py-0.5">
-                          Videography
+                      {request.survey_area_sqm && (
+                        <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200 px-2.5 py-0.5">
+                          {parseFloat(request.survey_area_sqm).toLocaleString()} sq m
                         </Badge>
                       )}
-                      {request.services?.audio && (
+                      {request.total_cost_jmd && (
                         <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 px-2.5 py-0.5">
-                          Audio
+                          JMD {parseFloat(request.total_cost_jmd).toLocaleString()}
                         </Badge>
                       )}
                     </div>
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs sm:text-sm text-gray-500">
-                        Submitted {new Date(request.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      <span className="typography-caption">
+                        Submitted {new Date(request.created_at || request.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
-                      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#755f52]">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
                         <Eye className="w-4 h-4" />
                         View details
                       </span>
@@ -326,6 +347,17 @@ export default function ClientDashboard({ user, serverUrl, accessToken, onLogout
             )}
           </CardContent>
         </Card>
+        {/* Reports Section */}
+        <div className="mt-6 sm:mt-8">
+          <ReportsListPanel
+            accessToken={currentToken || accessToken}
+            onSelectRequest={(projectId: string) => {
+              const match = requests.find((r: any) => r.id === projectId);
+              if (match) setSelectedRequest(match);
+            }}
+            isClient={true}
+          />
+        </div>
       </div>
     </div>
   );

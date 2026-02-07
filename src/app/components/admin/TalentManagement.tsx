@@ -4,13 +4,13 @@ import { Badge } from '@/app/components/ui/badge';
 import { Input } from '@/app/components/ui/input';
 import { Users } from 'lucide-react';
 import { getFreshToken } from '/utils/supabase/client';
+import { api } from '/utils/supabase/api';
 
 interface TalentManagementProps {
-  serverUrl: string;
   accessToken: string;
 }
 
-export default function TalentManagement({ serverUrl, accessToken }: TalentManagementProps) {
+export default function TalentManagement({ accessToken }: TalentManagementProps) {
   const [talents, setTalents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,7 +42,7 @@ export default function TalentManagement({ serverUrl, accessToken }: TalentManag
 
   const fetchTalents = async () => {
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/admin/talents`);
+      const response = await makeAuthenticatedRequest(`${api('admin')}/talents`);
 
       if (!response) {
         setLoading(false);
@@ -71,7 +71,7 @@ export default function TalentManagement({ serverUrl, accessToken }: TalentManag
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Vetted Talent Pool</h2>
-          <p className="text-sm sm:text-base text-gray-600">Private crew roster - visible only to ECJ coordinators</p>
+          <p className="text-sm sm:text-base text-gray-600">Private crew roster - visible only to coordinators</p>
         </div>
       </div>
 
@@ -141,7 +141,7 @@ export default function TalentManagement({ serverUrl, accessToken }: TalentManag
                     <p className="text-xs sm:text-sm text-gray-600 mt-1">{talent.experience}</p>
                   </div>
                   {talent.tier && (
-                    <Badge className="gradient-premium text-white shadow-premium">
+                    <Badge className="bg-primary text-white shadow-premium">
                       {talent.tier}
                     </Badge>
                   )}

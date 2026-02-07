@@ -9,17 +9,23 @@ import { Checkbox } from '@/app/components/ui/checkbox';
 import { User, Briefcase, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getFreshToken } from '/utils/supabase/client';
+import { api } from '/utils/supabase/api';
 import Navigation from '../Navigation';
+
+const PARISHES = [
+  'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',
+  'Trelawny', 'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth',
+  'Manchester', 'Clarendon', 'St. Catherine',
+];
 
 interface TalentDashboardProps {
   user: any;
-  serverUrl: string;
   accessToken: string;
   onLogout: () => void;
   onNavigate: (page: string) => void;
 }
 
-export default function TalentDashboard({ user, serverUrl, accessToken, onLogout, onNavigate }: TalentDashboardProps) {
+export default function TalentDashboard({ user, accessToken, onLogout, onNavigate }: TalentDashboardProps) {
   const [profile, setProfile] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,12 +40,6 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
     bio: '',
   });
 
-  const parishes = [
-    'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',
-    'Trelawny', 'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth',
-    'Manchester', 'Clarendon', 'St. Catherine'
-  ];
-
   // Helper: get a valid token
   const getToken = async () => await getFreshToken() || accessToken;
 
@@ -51,7 +51,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
   const fetchProfile = async () => {
     try {
       const token = await getToken();
-      const response = await fetch(`${serverUrl}/talent/${user.id}`, {
+      const response = await fetch(`${api('projects')}/talent/${user.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -91,7 +91,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
   const fetchAssignments = async () => {
     try {
       const token = await getToken();
-      const response = await fetch(`${serverUrl}/assignments/my`, {
+      const response = await fetch(`${api('projects')}/assignments/my`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -113,7 +113,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
   const handleSaveProfile = async () => {
     try {
       const token = await getToken();
-      const response = await fetch(`${serverUrl}/talent/apply`, {
+      const response = await fetch(`${api('projects')}/talent/apply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
 
   const handleRespondToAssignment = async (assignmentId: string, status: 'accepted' | 'declined') => {
     try {
-      const response = await fetch(`${serverUrl}/assignments/${assignmentId}/respond`, {
+      const response = await fetch(`${api('projects')}/assignments/${assignmentId}/respond`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
           </div>
         )}
         {/* Welcome */}
-        <Card className="mb-6 sm:mb-8 gradient-premium-green text-white border-0 shadow-premium-lg overflow-hidden">
+        <Card className="mb-6 sm:mb-8 bg-primary text-white border-0 shadow-lg overflow-hidden">
           <CardContent className="p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex-1 flex items-start gap-4">
@@ -220,7 +220,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
                 </div>
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold mb-1">Talent Portal</h1>
-                  <p className="text-sm text-white/90">You’re part of ECJ’s vetted crew. Clients book ECJ services; your profile is internal only.</p>
+                  <p className="text-sm text-white/90">You’re part of WCI’s vetted crew. Clients book WCI services; your profile is internal only.</p>
                 </div>
               </div>
             </div>
@@ -234,10 +234,10 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
             <Card className="card-premium h-full flex flex-col">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-[#755f52]" />
+                  <Briefcase className="w-5 h-5 text-primary" />
                   Assignments
                   {assignments.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto bg-[#BDFF1C]/20 text-[#755f52]">
+                    <Badge variant="secondary" className="ml-auto bg-primary/20 text-secondary">
                       {assignments.filter((a: any) => a.status === 'pending').length} new
                     </Badge>
                   )}
@@ -250,12 +250,12 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
                       <Briefcase className="w-7 h-7 text-gray-400" />
                     </div>
                     <p className="text-sm font-medium text-gray-700 mb-1">No assignments yet</p>
-                    <p className="text-xs text-gray-500">Complete your profile to receive event assignments from ECJ.</p>
+                    <p className="text-xs text-gray-500">Complete your profile to receive assignments.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {assignments.map((assignment) => (
-                      <div key={assignment.id} className="border border-gray-200 rounded-xl p-4 hover:border-[#BDFF1C]/40 hover:shadow-md transition-all">
+                      <div key={assignment.id} className="border border-gray-200 rounded-xl p-4 hover:border-primary/40 hover:shadow-md transition-all">
                         <div className="flex justify-between items-start gap-2 mb-2">
                           <span className="text-sm font-semibold text-gray-900">Request #{assignment.requestId?.split('-').pop() || '—'}</span>
                           <Badge className={
@@ -271,7 +271,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
                           <div className="flex gap-2 pt-2">
                             <Button 
                               size="sm" 
-                              className="flex-1 bg-[#BDFF1C] hover:bg-[#a5e00f] text-[#755f52] font-semibold"
+                              className="flex-1 bg-primary hover:opacity-90 text-white font-semibold"
                               onClick={() => handleRespondToAssignment(assignment.id, 'accepted')}
                             >
                               <CheckCircle2 className="w-4 h-4 mr-1.5 shrink-0" />
@@ -382,7 +382,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
                     <div>
                       <Label className="mb-3 block">Coverage Parishes</Label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {parishes.map(parish => (
+                        {PARISHES.map(parish => (
                           <div key={parish} className="flex items-center space-x-2">
                             <Checkbox
                               id={parish}
@@ -396,7 +396,7 @@ export default function TalentDashboard({ user, serverUrl, accessToken, onLogout
                     </div>
 
                     <div className="flex gap-3 pt-4">
-                      <Button onClick={handleSaveProfile} className="flex-1 gradient-premium-green text-white hover:opacity-95">
+                      <Button onClick={handleSaveProfile} className="flex-1 bg-primary text-white hover:opacity-90">
                         {profile ? 'Save Changes' : 'Submit Application'}
                       </Button>
                       {profile && (

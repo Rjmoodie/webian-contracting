@@ -26,6 +26,7 @@ export interface BrandingConfig {
   // Contact & Social
   contactEmail?: string;
   contactPhone?: string;
+  contactAddress?: string;
   website?: string;
   socialMedia?: {
     instagram?: string;
@@ -99,7 +100,9 @@ export interface ContentConfig {
   navigation: {
     home: string;
     services: string;
+    solutions?: string; // e.g. "Solutions" or "Our Solutions"
     portfolio: string;
+    coverageAreas?: string;
     about: string;
     contact: string;
   };
@@ -130,6 +133,39 @@ export interface ContentConfig {
     getStarted: string;
     learnMore: string;
     viewDetails: string;
+    allProjects?: string; // e.g. "All Projects" for portfolio filter
+  };
+
+  // Optional About page overrides
+  aboutPage?: {
+    storyIntro?: string;
+    missionIntro?: string;
+    differentiators?: { title: string; body: string }[];
+    values?: { title: string; body: string }[];
+    ctaHeading?: string;
+    ctaSubtext?: string;
+    ctaButtonPrimary?: string;
+    ctaButtonSecondary?: string;
+  };
+
+  // Optional Signup page overrides
+  signup?: {
+    heading?: string;
+    subheading?: string;
+    adminHeading?: string;
+    adminSubheading?: string;
+    roleLabel?: string; // e.g. "I want to..."
+    roles?: {
+      client?: { label: string; description: string };
+      talent?: { label: string; description: string };
+      admin?: { label: string; description: string };
+    };
+    companyLabel?: string;
+    companyPlaceholder?: string;
+    submitButton?: string;
+    creatingLabel?: string;
+    termsPrefix?: string;
+    termsLinkText?: string;
   };
 }
 

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from 'sonner';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { publicAnonKey } from '/utils/supabase/info';
 import { getSupabase, getFreshToken } from '/utils/supabase/client';
+import { api } from '/utils/supabase/api';
 import LoginPage from '@/app/components/LoginPage';
 import SignupPage from '@/app/components/SignupPage';
 import ClientDashboard from '@/app/components/client/ClientDashboard';
@@ -15,8 +16,6 @@ import CoverageAreasPage from '@/app/components/CoverageAreasPage';
 import VettingProcessPage from '@/app/components/VettingProcessPage';
 import TermsPoliciesPage from '@/app/components/TermsPoliciesPage';
 import { updateDocumentMeta } from '@/app/utils/seo';
-
-const serverUrl = `https://${projectId}.supabase.co/functions/v1/make-server-d8ea749c`;
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -126,7 +125,7 @@ export default function App() {
   const fetchUserProfile = async (token: string) => {
     try {
       // Single attempt against the backend
-      const response = await fetch(`${serverUrl}/auth/me`, {
+      const response = await fetch(`${api('auth')}/me`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -159,12 +158,12 @@ export default function App() {
     }
   };
 
-  const handleSignup = async (email: string, password: string, name: string, role: string, company?: string) => {
+  const handleSignup = async (email: string, password: string, name: string, role: string, company?: string, adminSignup?: boolean) => {
     try {
-      console.log('[FRONTEND] Attempting signup:', { email, role });
+      console.log('[FRONTEND] Attempting signup:', { email, role, adminSignup });
       
       // Call backend to create user with email_confirm: true
-      const signupResponse = await fetch(`${serverUrl}/auth/signup`, {
+      const signupResponse = await fetch(`${api('auth')}/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,6 +175,7 @@ export default function App() {
           name,
           role,
           company: company || null,
+          adminSignup: adminSignup === true,
         }),
       });
 
@@ -283,14 +283,13 @@ export default function App() {
       case 'admin-signup':
         return <SignupPage onSignup={handleSignup} onNavigate={handleNavigate} adminOnly={true} />;
       case 'services':
-        return <ServicesPage serverUrl={serverUrl} onNavigate={setCurrentPage} user={user} publicAnonKey={publicAnonKey} onLogout={handleLogout} />;
+        return <ServicesPage onNavigate={handleNavigate} user={user} publicAnonKey={publicAnonKey} onLogout={handleLogout} />;
       case 'portfolio':
-        return <PortfolioPage serverUrl={serverUrl} onNavigate={setCurrentPage} user={user} publicAnonKey={publicAnonKey} onLogout={handleLogout} />;
+        return <PortfolioPage onNavigate={handleNavigate} user={user} publicAnonKey={publicAnonKey} onLogout={handleLogout} />;
       case 'client-dashboard':
         return user && user.role === 'client' ? (
           <ClientDashboard 
             user={user} 
-            serverUrl={serverUrl} 
             accessToken={accessToken!}
             onLogout={handleLogout}
             onNavigate={handleNavigate}
@@ -300,7 +299,6 @@ export default function App() {
         return user && user.role === 'talent' ? (
           <TalentDashboard 
             user={user} 
-            serverUrl={serverUrl} 
             accessToken={accessToken!}
             onLogout={handleLogout}
             onNavigate={handleNavigate}
@@ -310,7 +308,6 @@ export default function App() {
         return user && (user.role === 'admin' || user.role === 'manager') ? (
           <AdminDashboard 
             user={user} 
-            serverUrl={serverUrl} 
             accessToken={accessToken!}
             onLogout={handleLogout}
             onNavigate={handleNavigate}

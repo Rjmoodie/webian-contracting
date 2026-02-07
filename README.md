@@ -1,6 +1,8 @@
-# Event Coverage Platform
+# webian_contracting
 
-A professional event coverage management platform built with React, TypeScript, and Supabase.
+A professional event coverage management platform built with React, TypeScript, and Supabase. Default client: Webian Contracting & Geophysics Ltd.
+
+**Repository:** [github.com/Rjmoodie/webian-contracting](https://github.com/Rjmoodie/webian-contracting)
 
 ## 🚀 Quick Start
 

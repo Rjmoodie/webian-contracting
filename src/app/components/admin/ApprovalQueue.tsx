@@ -6,13 +6,13 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { getFreshToken } from '/utils/supabase/client';
+import { api } from '/utils/supabase/api';
 
 interface ApprovalQueueProps {
-  serverUrl: string;
   accessToken: string;
 }
 
-export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueProps) {
+export default function ApprovalQueue({ accessToken }: ApprovalQueueProps) {
   const [services, setServices] = useState<any[]>([]);
   const [talents, setTalents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +48,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
   const fetchPendingItems = async () => {
     try {
       // Fetch pending services
-      const servicesResponse = await makeAuthenticatedRequest(`${serverUrl}/admin/services`);
+      const servicesResponse = await makeAuthenticatedRequest(`${api('admin')}/services`);
 
       if (servicesResponse?.ok) {
         const servicesData = await servicesResponse.json();
@@ -57,7 +57,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
       }
 
       // Fetch pending talents
-      const talentsResponse = await makeAuthenticatedRequest(`${serverUrl}/admin/talents`);
+      const talentsResponse = await makeAuthenticatedRequest(`${api('admin')}/talents`);
 
       if (talentsResponse?.ok) {
         const talentsData = await talentsResponse.json();
@@ -74,7 +74,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
 
   const handleApproveService = async (serviceId: string) => {
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}/approve`, {
+      const response = await makeAuthenticatedRequest(`${api('admin')}/services/${serviceId}/approve`, {
         method: 'POST',
       });
 
@@ -105,7 +105,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
 
     try {
       // Update service back to draft with notes
-      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}`, {
+      const response = await makeAuthenticatedRequest(`${api('admin')}/services/${serviceId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
 
   const handleApproveTalent = async (talentId: string) => {
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/talents/${talentId}/approve`, {
+      const response = await makeAuthenticatedRequest(`${api('admin')}/talents/${talentId}/approve`, {
         method: 'POST',
       });
 
@@ -168,7 +168,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
     }
 
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/talents/${talentId}/reject`, {
+      const response = await makeAuthenticatedRequest(`${api('admin')}/talents/${talentId}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -209,7 +209,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
               setReviewingItem(null);
               setReviewNotes('');
             }}
-            className="w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap"
+            className="w-full sm:w-auto min-h-[48px] whitespace-nowrap"
           >
             Back to Queue
           </Button>
@@ -248,7 +248,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
         <button
           className={`px-3 sm:px-4 py-2 text-sm sm:text-base font-medium transition-colors ${
             activeTab === 'services'
-              ? 'border-b-2 border-[#BDFF1C] text-[#BDFF1C]'
+              ? 'border-b-2 border-primary text-primary'
               : 'text-gray-600 hover:text-gray-900'
           }`}
           onClick={() => setActiveTab('services')}
@@ -258,7 +258,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
         <button
           className={`px-3 sm:px-4 py-2 text-sm sm:text-base font-medium transition-colors ${
             activeTab === 'talents'
-              ? 'border-b-2 border-[#BDFF1C] text-[#BDFF1C]'
+              ? 'border-b-2 border-primary text-primary'
               : 'text-gray-600 hover:text-gray-900'
           }`}
           onClick={() => setActiveTab('talents')}
@@ -300,7 +300,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
                       </div>
                     </div>
                     <Button 
-                      className="button-glow gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto"
+                      className="button-glow bg-primary text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto"
                       onClick={() => setReviewingItem(service)}
                     >
                       <Eye className="w-4 h-4 sm:mr-2" />
@@ -339,7 +339,7 @@ export default function ApprovalQueue({ serverUrl, accessToken }: ApprovalQueueP
                       </div>
                     </div>
                     <Button 
-                      className="button-glow gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto"
+                      className="button-glow bg-primary text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto"
                       onClick={() => setReviewingItem(talent)}
                     >
                       <Eye className="w-4 h-4 sm:mr-2" />
@@ -389,8 +389,8 @@ function ServiceReviewCard({ service, reviewNotes, onNotesChange, onApprove, onR
             <div>
               <div className="text-sm font-semibold text-gray-700 mb-2">Good For</div>
               <div className="flex flex-wrap gap-2">
-                {service.goodFor.map((tag: string, i: number) => (
-                  <Badge key={i} variant="secondary">{tag}</Badge>
+                {service.goodFor.map((tag: string) => (
+                  <Badge key={tag} variant="secondary">{tag}</Badge>
                 ))}
               </div>
             </div>
@@ -400,8 +400,8 @@ function ServiceReviewCard({ service, reviewNotes, onNotesChange, onApprove, onR
             <div>
               <div className="text-sm font-semibold text-gray-700 mb-2">Deliverables</div>
               <ul className="list-disc list-inside space-y-1">
-                {service.deliverables.map((item: string, i: number) => (
-                  <li key={i} className="text-sm text-gray-700">{item}</li>
+                {service.deliverables.map((item: string) => (
+                  <li key={item} className="text-sm text-gray-700">{item}</li>
                 ))}
               </ul>
             </div>
@@ -447,7 +447,7 @@ function ServiceReviewCard({ service, reviewNotes, onNotesChange, onApprove, onR
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
-              className="flex-1 min-h-[44px] sm:min-h-0 sm:h-10 border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all whitespace-nowrap"
+              className="flex-1 min-h-[48px] border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all whitespace-nowrap"
               onClick={onReject}
             >
               <XCircle className="w-4 h-4 sm:mr-2 shrink-0" />
@@ -455,7 +455,7 @@ function ServiceReviewCard({ service, reviewNotes, onNotesChange, onApprove, onR
               <span className="sm:hidden">Changes</span>
             </Button>
             <Button
-              className="button-glow flex-1 min-h-[44px] sm:min-h-0 sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
+              className="button-glow flex-1 min-h-[48px] bg-primary text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
               onClick={onApprove}
             >
               <CheckCircle className="w-4 h-4 sm:mr-2 shrink-0" />
@@ -486,8 +486,8 @@ function TalentReviewCard({ talent, reviewNotes, onNotesChange, onApprove, onRej
           <div>
             <div className="text-sm font-semibold text-gray-700 mb-1">Skills</div>
             <div className="flex gap-2">
-              {talent.skills?.map((skill: string, i: number) => (
-                <Badge key={i}>{skill}</Badge>
+              {talent.skills?.map((skill: string) => (
+                <Badge key={skill}>{skill}</Badge>
               ))}
             </div>
           </div>
@@ -510,8 +510,8 @@ function TalentReviewCard({ talent, reviewNotes, onNotesChange, onApprove, onRej
           <div>
             <div className="text-sm font-semibold text-gray-700 mb-1">Coverage Parishes</div>
             <div className="flex flex-wrap gap-2">
-              {talent.coverageParishes?.map((parish: string, i: number) => (
-                <Badge key={i} variant="outline">{parish}</Badge>
+              {talent.coverageParishes?.map((parish: string) => (
+                <Badge key={parish} variant="outline">{parish}</Badge>
               ))}
             </div>
           </div>
@@ -545,7 +545,7 @@ function TalentReviewCard({ talent, reviewNotes, onNotesChange, onApprove, onRej
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
-              className="flex-1 min-h-[44px] sm:min-h-0 sm:h-10 border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all whitespace-nowrap"
+              className="flex-1 min-h-[48px] border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 transition-all whitespace-nowrap"
               onClick={onReject}
             >
               <XCircle className="w-4 h-4 sm:mr-2 shrink-0" />
@@ -553,7 +553,7 @@ function TalentReviewCard({ talent, reviewNotes, onNotesChange, onApprove, onRej
               <span className="sm:hidden">Reject</span>
             </Button>
             <Button
-              className="button-glow flex-1 min-h-[44px] sm:min-h-0 sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
+              className="button-glow flex-1 min-h-[48px] bg-primary text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
               onClick={onApprove}
             >
               <CheckCircle className="w-4 h-4 sm:mr-2 shrink-0" />

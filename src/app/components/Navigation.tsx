@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Camera, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
-import ECJLogo from "@/app/components/ECJLogo";
+import BrandLogo from "@/app/components/ECJLogo";
+import { getContent } from "@/app/config";
 
 interface NavigationProps {
   user?: any;
@@ -18,7 +19,7 @@ function UserGreeting({ user }: { user: { name: string } }) {
   return (
     <span
       title={`Hi, ${user.name}`}
-      className="hidden lg:inline-flex items-center h-9 text-sm font-medium text-white/90 whitespace-nowrap leading-none"
+      className="hidden lg:inline-flex items-center h-9 text-sm font-medium text-foreground/90 whitespace-nowrap leading-none"
     >
       Hi, {user.name}
     </span>
@@ -33,10 +34,10 @@ function Logo({ onClick, isPublic }: { onClick: () => void; isPublic: boolean })
       onClick={onClick}
       className="flex items-center cursor-pointer shrink-0 group"
       role="link"
-      aria-label="Event Coverage Jamaica – Home"
+      aria-label="Home"
     >
       <div className={`flex-shrink-0 hover:scale-105 transition-transform duration-200 ${logoHeight} flex items-center`}>
-        <ECJLogo
+        <BrandLogo
           size="xl"
           className="drop-shadow-sm max-h-full w-auto"
         />
@@ -47,25 +48,34 @@ function Logo({ onClick, isPublic }: { onClick: () => void; isPublic: boolean })
 
 // Public links (desktop only)
 function PublicLinks({ onNavigate }: { onNavigate: (page: string) => void }) {
+  const nav = getContent().navigation;
   return (
     <div className="hidden md:flex items-center gap-6 shrink-0">
       <button
         onClick={() => onNavigate("services")}
-        className="inline-flex items-center h-9 leading-none text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap"
+        className="inline-flex items-center h-9 leading-none text-foreground hover:text-primary font-medium transition whitespace-nowrap"
       >
-        Services
+        {nav.services}
       </button>
+      {nav.coverageAreas && (
+        <button
+          onClick={() => onNavigate("coverage-areas")}
+          className="inline-flex items-center h-9 leading-none text-foreground hover:text-primary font-medium transition whitespace-nowrap"
+        >
+          {nav.coverageAreas}
+        </button>
+      )}
       <button
         onClick={() => onNavigate("portfolio")}
-        className="inline-flex items-center h-9 leading-none text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap"
+        className="inline-flex items-center h-9 leading-none text-foreground hover:text-primary font-medium transition whitespace-nowrap"
       >
-        Portfolio
+        {nav.portfolio}
       </button>
       <button
-        onClick={() => onNavigate("coverage-areas")}
-        className="inline-flex items-center h-9 leading-none text-white hover:text-[#c9a882] font-medium transition whitespace-nowrap"
+        onClick={() => onNavigate("about")}
+        className="inline-flex items-center h-9 leading-none text-foreground hover:text-primary font-medium transition whitespace-nowrap"
       >
-        Coverage
+        {nav.about}
       </button>
     </div>
   );
@@ -82,10 +92,11 @@ export default function Navigation({
 }: NavigationProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isPublic = variant === "public";
+  const nav = getContent().navigation;
 
-  // Same header color as home page so logo shows well (brown #755f52)
+  // White header with dark text and subtle border
   const navClass =
-    "bg-[#755f52] fixed top-0 left-0 w-full z-50 shadow-md header-nav";
+    "bg-white fixed top-0 left-0 w-full z-50 border-b border-border shadow-sm header-nav";
 
   const handleDashboardClick = () => {
     if (user?.role === "client") onNavigate("client-dashboard");
@@ -118,7 +129,7 @@ export default function Navigation({
             <Logo onClick={() => onNavigate("home")} isPublic={isPublic} />
             {isPublic && showNavLinks && <PublicLinks onNavigate={onNavigate} />}
             {!isPublic && portalLabel && (
-              <span className="hidden lg:inline-flex text-sm sm:text-base text-white/90 font-medium whitespace-nowrap">
+              <span className="hidden lg:inline-flex text-sm sm:text-base text-foreground/90 font-medium whitespace-nowrap">
                 {portalLabel}
               </span>
             )}
@@ -136,16 +147,16 @@ export default function Navigation({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-white/10 hover:bg-white/20 border-white/40 text-white font-medium whitespace-nowrap"
+                      className="border-border text-foreground hover:bg-muted font-medium whitespace-nowrap"
                       onClick={() => onNavigate("services")}
                     >
-                      Browse Services
+                      {getContent().phrases.browseServices}
                     </Button>
                   )}
 
                   {isPublic && (
                     <button
-                      className="inline-flex items-center h-9 text-sm font-medium leading-none whitespace-nowrap text-white hover:text-[#c9a882] transition"
+                      className="inline-flex items-center h-9 text-sm font-medium leading-none whitespace-nowrap text-foreground hover:text-primary transition"
                       onClick={handleDashboardClick}
                     >
                       Dashboard
@@ -154,7 +165,7 @@ export default function Navigation({
 
                   <button
                     onClick={() => onLogout?.()}
-                    className="inline-flex items-center gap-2 h-9 text-white/90 hover:text-white text-sm font-medium leading-none whitespace-nowrap transition"
+                    className="inline-flex items-center gap-2 h-9 text-foreground/90 hover:text-foreground text-sm font-medium leading-none whitespace-nowrap transition"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>
@@ -163,7 +174,7 @@ export default function Navigation({
               ) : (
                 <>
                   <button
-                    className="inline-flex items-center h-9 text-sm font-medium leading-none whitespace-nowrap text-white hover:text-[#c9a882] transition"
+                    className="inline-flex items-center h-9 text-sm font-medium leading-none whitespace-nowrap text-foreground hover:text-primary transition"
                     onClick={() => onNavigate("login")}
                   >
                     Login
@@ -171,7 +182,7 @@ export default function Navigation({
 
                   <Button
                     size="sm"
-                    className="bg-[#BDFF1C] hover:bg-[#a5e00f] text-white font-semibold whitespace-nowrap"
+                    className="bg-primary hover:opacity-90 text-primary-foreground font-semibold whitespace-nowrap"
                     onClick={() => onNavigate("signup")}
                   >
                     Get Started
@@ -183,7 +194,7 @@ export default function Navigation({
             {/* Mobile Menu Button — MOBILE ONLY (hidden on desktop) */}
             <button
               onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="burger-menu-button rounded-lg transition w-9 h-9 flex items-center justify-center shrink-0 text-white hover:bg-[#8b7263]"
+              className="burger-menu-button rounded-lg transition w-9 h-9 flex items-center justify-center shrink-0 text-foreground hover:bg-muted"
               aria-label="Toggle menu"
               aria-expanded={isMenuOpen}
             >
@@ -194,7 +205,7 @@ export default function Navigation({
 
         {/* Mobile Menu — Shows when nav links are hidden */}
         {isMenuOpen && (
-          <div className="md:hidden absolute left-0 right-0 top-full z-50 bg-[#755f52] border-t border-[#8b7263] shadow-md">
+          <div className="md:hidden absolute left-0 right-0 top-full z-50 bg-white border-t border-border shadow-lg">
             <div className="px-4 sm:px-6 py-4">
               <div className="flex flex-col gap-2">
                 {isPublic && showNavLinks && (
@@ -204,29 +215,40 @@ export default function Navigation({
                         onNavigate("services");
                         closeMenu();
                       }}
-                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-foreground hover:text-primary"
                     >
-                      Services
+                      {nav.services}
                     </button>
+                    {nav.coverageAreas && (
+                      <button
+                        onClick={() => {
+                          onNavigate("coverage-areas");
+                          closeMenu();
+                        }}
+                        className="w-full text-left px-2 py-3 rounded-md font-medium transition text-foreground hover:text-primary"
+                      >
+                        {nav.coverageAreas}
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         onNavigate("portfolio");
                         closeMenu();
                       }}
-                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-foreground hover:text-primary"
                     >
-                      Portfolio
+                      {nav.portfolio}
                     </button>
                     <button
                       onClick={() => {
-                        onNavigate("coverage-areas");
+                        onNavigate("about");
                         closeMenu();
                       }}
-                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-foreground hover:text-primary"
                     >
-                      Coverage
+                      {nav.about}
                     </button>
-                    <div className="my-2 border-t border-[#8b7263]" />
+                    <div className="my-2 border-t border-border" />
                   </>
                 )}
 
@@ -235,19 +257,19 @@ export default function Navigation({
                     {showBrowseServices && (
                       <Button
                         variant="outline"
-                        className="w-full justify-start bg-white/10 hover:bg-white/20 border-white/40 text-white rounded-lg"
+                        className="w-full justify-start border-border text-foreground hover:bg-muted rounded-lg"
                         onClick={() => {
                           onNavigate("services");
                           closeMenu();
                         }}
                       >
-                        Browse Services
+                        {getContent().phrases.browseServices}
                       </Button>
                     )}
 
                     {isPublic && (
                       <button
-                        className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                        className="w-full text-left px-2 py-3 rounded-md font-medium transition text-foreground hover:text-primary"
                         onClick={() => {
                           handleDashboardClick();
                           closeMenu();
@@ -258,7 +280,7 @@ export default function Navigation({
                     )}
 
                     <button
-                      className="w-full flex items-center gap-2 px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                      className="w-full flex items-center gap-2 px-2 py-3 rounded-md font-medium transition text-foreground hover:text-primary"
                       onClick={() => {
                         onLogout?.();
                         closeMenu();
@@ -271,7 +293,7 @@ export default function Navigation({
                 ) : (
                   <>
                     <button
-                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-white hover:text-[#c9a882]"
+                      className="w-full text-left px-2 py-3 rounded-md font-medium transition text-foreground hover:text-primary"
                       onClick={() => {
                         onNavigate("login");
                         closeMenu();
@@ -281,7 +303,7 @@ export default function Navigation({
                     </button>
 
                     <Button
-                      className="w-full rounded-lg bg-[#BDFF1C] hover:bg-[#a5e00f] text-white"
+                      className="w-full rounded-lg bg-primary hover:opacity-90 text-primary-foreground"
                       onClick={() => {
                         onNavigate("signup");
                         closeMenu();

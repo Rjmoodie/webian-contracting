@@ -1,12 +1,9 @@
 /**
  * SEO utilities: per-route document title and meta description.
- * Base URL and default values should match your deployment.
+ * Uses active client config for site name and descriptions.
  */
 
-const BASE_URL = 'https://eventcoveragejamaica.com';
-const SITE_NAME = 'Event Coverage Jamaica';
-const DEFAULT_DESCRIPTION =
-  'Professional event coverage across Jamaica. ECJ-vetted photography, videography, and audio services. All 14 parishes.';
+import { getBranding, getAppConfig } from '@/app/config';
 
 export interface PageMeta {
   title: string;
@@ -14,62 +11,88 @@ export interface PageMeta {
   canonical?: string;
 }
 
-const pageMeta: Record<string, PageMeta> = {
-  home: {
-    title: `${SITE_NAME} | Professional Event Services`,
-    description: DEFAULT_DESCRIPTION,
-    canonical: BASE_URL + '/',
-  },
-  services: {
-    title: `Services | ${SITE_NAME}`,
-    description:
-      'Photography, videography, and audio services for events in Jamaica. Vetted professionals, pro equipment, on-time delivery.',
-    canonical: BASE_URL + '/#services',
-  },
-  portfolio: {
-    title: `Portfolio | ${SITE_NAME}`,
-    description: 'See event coverage samples from ECJ professionals across Jamaica.',
-    canonical: BASE_URL + '/#portfolio',
-  },
-  about: {
-    title: `About | ${SITE_NAME}`,
-    description:
-      'Learn how Event Coverage Jamaica connects clients with vetted event professionals across all 14 parishes.',
-    canonical: BASE_URL + '/#about',
-  },
-  'coverage-areas': {
-    title: `Coverage Areas | ${SITE_NAME}`,
-    description: 'Professional event coverage in all 14 parishes of Jamaica. Kingston to Portland, Negril to Morant Bay.',
-    canonical: BASE_URL + '/#coverage-areas',
-  },
-  'vetting-process': {
-    title: `Vetting Process | ${SITE_NAME}`,
-    description: 'How we vet event coverage professionals. Quality standards and ECJ brand commitment.',
-    canonical: BASE_URL + '/#vetting-process',
-  },
-  'terms-policies': {
-    title: `Terms & Policies | ${SITE_NAME}`,
-    description: 'Terms of service and policies for Event Coverage Jamaica.',
-    canonical: BASE_URL + '/#terms-policies',
-  },
-  login: {
-    title: `Sign In | ${SITE_NAME}`,
-    description: 'Sign in to your Event Coverage Jamaica account.',
-    canonical: BASE_URL + '/#login',
-  },
-  signup: {
-    title: `Create Account | ${SITE_NAME}`,
-    description: 'Join Event Coverage Jamaica as a client or professional.',
-    canonical: BASE_URL + '/#signup',
-  },
-  'admin-signup': {
-    title: `Admin Signup | ${SITE_NAME}`,
-    description: 'Create an admin account for Event Coverage Jamaica.',
-    canonical: BASE_URL + '/#admin-signup',
-  },
-};
+function getSiteName(): string {
+  return getAppConfig().appName;
+}
+
+function getBaseUrl(): string {
+  const website = getBranding().website;
+  if (website) {
+    try {
+      const u = new URL(website);
+      return u.origin;
+    } catch {
+      return typeof window !== 'undefined' ? window.location.origin : '';
+    }
+  }
+  return typeof window !== 'undefined' ? window.location.origin : '';
+}
+
+function getDefaultDescription(): string {
+  return getBranding().description;
+}
+
+function buildPageMeta(): Record<string, PageMeta> {
+  const siteName = getSiteName();
+  const baseUrl = getBaseUrl();
+  const defaultDesc = getDefaultDescription();
+
+  return {
+    home: {
+      title: `${siteName} | Professional Services`,
+      description: defaultDesc,
+      canonical: baseUrl + '/',
+    },
+    services: {
+      title: `Services | ${siteName}`,
+      description: defaultDesc,
+      canonical: baseUrl + '/#services',
+    },
+    portfolio: {
+      title: `Portfolio | ${siteName}`,
+      description: defaultDesc,
+      canonical: baseUrl + '/#portfolio',
+    },
+    about: {
+      title: `About | ${siteName}`,
+      description: defaultDesc,
+      canonical: baseUrl + '/#about',
+    },
+    'coverage-areas': {
+      title: `Coverage Areas | ${siteName}`,
+      description: defaultDesc,
+      canonical: baseUrl + '/#coverage-areas',
+    },
+    'vetting-process': {
+      title: `Vetting Process | ${siteName}`,
+      description: defaultDesc,
+      canonical: baseUrl + '/#vetting-process',
+    },
+    'terms-policies': {
+      title: `Terms & Policies | ${siteName}`,
+      description: defaultDesc,
+      canonical: baseUrl + '/#terms-policies',
+    },
+    login: {
+      title: `Sign In | ${siteName}`,
+      description: `Sign in to your ${siteName} account.`,
+      canonical: baseUrl + '/#login',
+    },
+    signup: {
+      title: `Create Account | ${siteName}`,
+      description: `Join ${siteName} as a client or professional.`,
+      canonical: baseUrl + '/#signup',
+    },
+    'admin-signup': {
+      title: `Admin Signup | ${siteName}`,
+      description: `Create an admin account for ${siteName}.`,
+      canonical: baseUrl + '/#admin-signup',
+    },
+  };
+}
 
 function getMetaForPage(page: string): PageMeta {
+  const pageMeta = buildPageMeta();
   return pageMeta[page] ?? pageMeta.home;
 }
 
@@ -102,4 +125,7 @@ export function updateDocumentMeta(page: string): void {
   }
 }
 
-export { BASE_URL, SITE_NAME, DEFAULT_DESCRIPTION, getMetaForPage };
+export { getMetaForPage };
+export const BASE_URL = () => getBaseUrl();
+export const SITE_NAME = () => getSiteName();
+export const DEFAULT_DESCRIPTION = () => getDefaultDescription();

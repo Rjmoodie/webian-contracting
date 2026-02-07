@@ -1,14 +1,12 @@
-import { useState, lazy, Suspense } from 'react';
-import { MapPin, Building2, Users, Clock, CheckCircle2, ArrowLeft, Camera } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
+import React, { useState, useMemo } from 'react';
+import { MapPin, CheckCircle2, ArrowLeft, Building2 } from 'lucide-react';
+import { Card, CardContent } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import Navigation from './Navigation';
-import JamaicaMap from '@/app/components/JamaicaMap';
-import jamaicaMap from 'figma:asset/7f8950c56c52dca925d40dbb81dc5bffa4ea6cb0.png';
+import { getBranding, getContent } from '@/app/config';
 
-// Lazy load the map component to avoid SSR issues
-const JamaicaLeafletMap = lazy(() => import('@/app/components/JamaicaLeafletMap'));
+const PARISH_ROW_1 = ['Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann', 'Trelawny'] as const;
+const PARISH_ROW_2 = ['St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth', 'Manchester', 'Clarendon', 'St. Catherine'] as const;
 
 interface CoverageAreasPageProps {
   onNavigate: (page: string) => void;
@@ -16,7 +14,7 @@ interface CoverageAreasPageProps {
   user?: any;
 }
 
-const parishes = [
+const PARISHES = [
   {
     name: 'Kingston',
     description: 'Capital city coverage for corporate events, conferences, festivals, and cultural celebrations',
@@ -91,74 +89,80 @@ const parishes = [
 
 export default function CoverageAreasPage({ onNavigate, onLogout, user }: CoverageAreasPageProps) {
   const [selectedParish, setSelectedParish] = useState<string | null>(null);
-
-  const parishData: Record<string, any> = parishes.reduce((acc, parish) => {
-    acc[parish.name] = parish;
-    return acc;
-  }, {} as Record<string, any>);
-
+  const branding = getBranding();
+  const content = getContent();
+  const parishData = useMemo(
+    () => PARISHES.reduce((acc, parish) => {
+      acc[parish.name] = parish;
+      return acc;
+    }, {} as Record<string, (typeof PARISHES)[number]>),
+    []
+  );
   const selectedData = selectedParish ? parishData[selectedParish] : null;
+  const goGetStarted = () => onNavigate(user ? 'client-dashboard' : 'signup');
+  const coverageLabel = content?.coverageAreaLabel ?? 'Service Areas';
+  const coverageDesc = content?.coverageAreaDescription ?? branding.description ?? '';
+  const requestCoverage = content?.phrases?.requestCoverage ?? 'Get a quote';
+  const goToQuoteFlow = () => {
+    try {
+      sessionStorage.setItem('openCreateWizard', '1');
+    } catch (_) {}
+    if (user?.role === 'client') {
+      onNavigate('client-dashboard');
+    } else {
+      onNavigate('signup');
+    }
+  };
+
+  const toggleParish = (parish: string) => setSelectedParish((p) => (p === parish ? null : parish));
 
   return (
-    <div className="min-h-screen bg-[#f5f1eb]">
-      {/* Header */}
-      <Navigation
-        user={user}
-        onNavigate={onNavigate}
-        onLogout={onLogout}
-        variant="public"
-        showNavLinks={false}
-      />
-      {/* Spacer for fixed header */}
+    <div className="min-h-screen bg-background">
+      <Navigation user={user} onNavigate={onNavigate} onLogout={onLogout} variant="public" showNavLinks={false} />
       <div className="h-24" />
 
-      {/* Hero Section */}
-      <section className="relative py-12 sm:py-16 md:py-20 px-4 overflow-hidden bg-gradient-to-r from-[#755f52] to-[#8b7263]">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-64 h-64 sm:w-96 sm:h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 right-10 w-64 h-64 sm:w-96 sm:h-96 bg-[#c9a882] rounded-full blur-3xl"></div>
+      {/* Hero */}
+      <section className="relative py-12 sm:py-16 md:py-20 px-4 overflow-hidden bg-gradient-to-r from-secondary to-secondary/90">
+        <div className="absolute inset-0 opacity-10" aria-hidden="true">
+          <div className="absolute top-10 left-10 w-64 h-64 sm:w-96 sm:h-96 bg-primary rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-64 h-64 sm:w-96 sm:h-96 bg-primary rounded-full blur-3xl" />
         </div>
-        
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <Button 
-            variant="ghost" 
-            className="text-white hover:text-[#c9a882] mb-4 sm:mb-6"
-            onClick={() => onNavigate('home')}
-          >
+          <Button variant="ghost" className="text-white hover:text-primary mb-4 sm:mb-6" onClick={() => onNavigate('home')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
           <div className="flex items-center justify-center gap-3 mb-4 sm:mb-6">
-            <MapPin className="w-8 h-8 sm:w-10 sm:h-12 text-[#BDFF1C]" />
+            <MapPin className="w-8 h-8 sm:w-10 sm:h-12 text-primary" />
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
-            Island-Wide Coverage
+          <h1 className="typography-page-title-hero mb-4 sm:mb-6">
+            {coverageLabel}
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-[#e8dfd1] leading-relaxed max-w-3xl mx-auto">
-            Professional event coverage across all 14 parishes of Jamaica. From Kingston to Portland, Negril to Morant Bay—we've got you covered.
+          <p className="typography-body text-white/90 sm:text-lg leading-relaxed max-w-3xl mx-auto">
+            {coverageDesc}
           </p>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-12 px-4 bg-white border-b border-gray-200">
+      {/* Stats */}
+      <section className="py-12 px-4 bg-card border-b border-border">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-[#BDFF1C] mb-2">14</div>
-              <div className="text-gray-600">Parishes Covered</div>
+              <div className="text-4xl font-bold text-primary mb-2">{branding.coverageAreas?.length ?? 7}</div>
+              <div className="text-muted-foreground">{coverageLabel}</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-[#755f52] mb-2">Islandwide</div>
-              <div className="text-gray-600">Jamaica Coverage</div>
+              <div className="text-4xl font-bold text-secondary mb-2">Jamaica</div>
+              <div className="text-muted-foreground">Service regions</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-[#BDFF1C] mb-2">500+</div>
-              <div className="text-gray-600">Events Covered</div>
+              <div className="text-4xl font-bold text-primary mb-2">WCI</div>
+              <div className="text-muted-foreground">Solutions</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-[#755f52] mb-2">24/7</div>
-              <div className="text-gray-600">Support Available</div>
+              <div className="text-4xl font-bold text-secondary mb-2">24/7</div>
+              <div className="text-muted-foreground">Enquiries welcome</div>
             </div>
           </div>
         </div>
@@ -168,67 +172,56 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
       <section className="py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[#755f52] mb-4">
-              Coverage Across All 14 Parishes
+            <h2 className="text-4xl font-bold text-secondary mb-4">
+              {coverageLabel}
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-2">
-              Click on any parish to learn more about our coverage in that area
-            </p>
+            {coverageDesc && (
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-2">
+                {coverageDesc}
+              </p>
+            )}
           </div>
 
-          {/* Interactive Map of Parishes */}
-          <Card className="border-0 shadow-2xl mb-8 overflow-hidden">
-            <CardContent className="p-8 bg-gradient-to-br from-[#f5f1eb] to-white">
-              <p className="text-center text-sm text-gray-500 mb-6 font-medium">
-                Professional event coverage available in all 14 parishes of Jamaica
+          <Card className="border-0 shadow-xl mb-8 overflow-hidden">
+            <CardContent className="p-8 bg-gradient-to-br from-muted to-background">
+              <p className="text-center text-sm text-muted-foreground mb-6 font-medium">
+                {branding.tagline}
               </p>
-              
-              {/* Interactive Jamaica Map */}
-              <div className="mb-8">
-                <Suspense fallback={
-                  <div className="w-full h-[400px] sm:h-[500px] md:h-[600px] rounded-2xl overflow-hidden border-2 border-[#755f52]/20 shadow-xl bg-gradient-to-br from-[#f5f1eb] to-[#ebe4d8] flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#755f52] border-t-transparent mx-auto mb-4"></div>
-                      <p className="text-[#755f52] font-medium">Loading map...</p>
-                    </div>
-                  </div>
-                }>
-                  <JamaicaLeafletMap 
-                    selectedParish={selectedParish}
-                    onParishClick={(parish) => setSelectedParish(parish === selectedParish ? null : parish)}
-                  />
-                </Suspense>
+
+              <div className="mb-8 w-full rounded-2xl overflow-hidden border-2 border-border shadow-xl bg-muted flex items-center justify-center min-h-[200px]">
+                <div className="text-center px-4 py-8">
+                  <MapPin className="w-12 h-12 text-primary mx-auto mb-3 opacity-70" />
+                  <p className="text-secondary font-medium mb-1">Service areas across Jamaica</p>
+                  <p className="text-sm text-muted-foreground">Use the buttons below to explore</p>
+                </div>
               </div>
-              
+
               {/* Parish Buttons arranged geographically */}
               <div className="space-y-3">
-                {/* Row 1: North Coast East */}
                 <div className="flex flex-wrap justify-center gap-2">
-                  {['Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann', 'Trelawny'].map((parish) => (
+                  {PARISH_ROW_1.map((parish) => (
                     <button
                       key={parish}
-                      onClick={() => setSelectedParish(parish === selectedParish ? null : parish)}
+                      onClick={() => toggleParish(parish)}
                       className={`min-h-[44px] px-4 sm:px-6 py-2.5 sm:py-3 rounded-full font-bold text-xs sm:text-sm transition-all duration-300 ${
                         selectedParish === parish
-                          ? 'bg-[#BDFF1C] text-white shadow-lg scale-105'
-                          : 'bg-white text-[#755f52] border-2 border-[#755f52] hover:bg-[#755f52] hover:text-white hover:scale-105'
+                          ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                          : 'bg-card text-secondary border-2 border-secondary hover:bg-secondary hover:text-secondary-foreground hover:scale-105'
                       }`}
                     >
                       {parish}
                     </button>
                   ))}
                 </div>
-
-                {/* Row 2: West Coast & Interior */}
                 <div className="flex flex-wrap justify-center gap-2">
-                  {['St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth', 'Manchester', 'Clarendon', 'St. Catherine'].map((parish) => (
+                  {PARISH_ROW_2.map((parish) => (
                     <button
                       key={parish}
-                      onClick={() => setSelectedParish(parish === selectedParish ? null : parish)}
+                      onClick={() => toggleParish(parish)}
                       className={`min-h-[44px] px-4 sm:px-6 py-2.5 sm:py-3 rounded-full font-bold text-xs sm:text-sm transition-all duration-300 ${
                         selectedParish === parish
-                          ? 'bg-[#BDFF1C] text-white shadow-lg scale-105'
-                          : 'bg-white text-[#755f52] border-2 border-[#755f52] hover:bg-[#755f52] hover:text-white hover:scale-105'
+                          ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                          : 'bg-card text-secondary border-2 border-secondary hover:bg-secondary hover:text-secondary-foreground hover:scale-105'
                       }`}
                     >
                       {parish}
@@ -239,26 +232,26 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
 
               {/* Selected Parish Details */}
               {selectedData && (
-                <div className="mt-8 p-6 bg-white rounded-2xl border-2 border-[#BDFF1C] shadow-xl animate-in fade-in duration-300">
+                <div className="mt-8 p-6 bg-card rounded-2xl border-2 border-primary shadow-xl">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-[#BDFF1C] to-[#a5e00f] rounded-xl flex items-center justify-center">
-                      <MapPin className="w-8 h-8 text-white" />
+                    <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center">
+                      <MapPin className="w-8 h-8 text-primary-foreground" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold text-[#755f52]">{selectedData.name}</h3>
-                      <p className="text-sm text-gray-500">Click again to close</p>
+                      <h3 className="text-2xl font-bold text-secondary">{selectedData.name}</h3>
+                      <p className="text-sm text-muted-foreground">Click again to close</p>
                     </div>
                   </div>
-                  <p className="text-gray-700 mb-4 text-base leading-relaxed">
+                  <p className="text-muted-foreground mb-4 text-base leading-relaxed">
                     {selectedData.description}
                   </p>
                   <div className="space-y-2">
-                    <h4 className="font-bold text-[#755f52] text-sm mb-3">Coverage Specialties:</h4>
+                    <h4 className="font-bold text-secondary text-sm mb-3">Coverage specialties</h4>
                     <div className="grid sm:grid-cols-2 gap-2">
-                      {selectedData.highlights.map((highlight: string, index: number) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <CheckCircle2 className="w-5 h-5 text-[#BDFF1C] mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-gray-700 font-medium">{highlight}</span>
+                      {selectedData.highlights.map((highlight: string) => (
+                        <div key={highlight} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-foreground font-medium">{highlight}</span>
                         </div>
                       ))}
                     </div>
@@ -267,31 +260,30 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
               )}
 
               {!selectedData && (
-                <div className="mt-8 text-center py-12 bg-white bg-opacity-50 rounded-xl border-2 border-dashed border-[#755f52]">
-                  <MapPin className="w-16 h-16 text-[#755f52] opacity-30 mx-auto mb-3" />
-                  <p className="text-[#755f52] font-medium">Select a parish above to view coverage details</p>
+                <div className="mt-8 text-center py-12 bg-muted/50 rounded-xl border-2 border-dashed border-border">
+                  <MapPin className="w-16 h-16 text-primary opacity-30 mx-auto mb-3" />
+                  <p className="text-secondary font-medium">Select an area above to view details</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Additional Info */}
           <Card className="mt-8 border-0 shadow-lg">
             <CardContent className="p-8">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-[#BDFF1C] rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Camera className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Building2 className="w-6 h-6 text-primary-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-[#755f52] mb-4">
-                    Need Coverage Outside Your Parish?
+                  <h3 className="text-2xl font-bold text-secondary mb-4">
+                    Projects in Jamaica
                   </h3>
-                  <p className="text-gray-700 mb-4">
-                    No problem! Our vetted talent network spans the entire island. Whether your event is in a major city or a rural community, we can arrange professional coverage with ECJ's quality guarantee.
+                  <p className="text-muted-foreground mb-4">
+                    We deliver geophysical and geotechnical solutions across Jamaica. From utility location and infrastructure assessment to concrete evaluation and environmental studies—we provide the insight you need below the surface.
                   </p>
-                  <div className="bg-[#f5f1eb] p-4 rounded-lg border-l-4 border-[#BDFF1C]">
-                    <p className="text-sm text-gray-700">
-                      <span className="font-bold text-[#755f52]">Travel & Coverage:</span> We handle all logistics for events requiring talent to travel. Our managed service model means you don't need to worry about transportation, accommodation, or coordination—we take care of it all.
+                  <div className="bg-muted p-4 rounded-lg border-l-4 border-primary">
+                    <p className="text-sm text-foreground">
+                      <span className="font-bold text-secondary">WCI solutions:</span> Geotechnical and geological solutions, infrastructure assessment, concrete assessment and evaluation, and environmental and contamination studies. Get in touch for a detailed quote.
                     </p>
                   </div>
                 </div>
@@ -299,21 +291,20 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
             </CardContent>
           </Card>
 
-          {/* CTA */}
-          <Card className="mt-8 border-0 shadow-lg bg-gradient-to-r from-[#755f52] to-[#8b7263]">
+          <Card className="mt-8 border-0 shadow-lg bg-gradient-to-r from-secondary to-secondary/90">
             <CardContent className="p-8 text-center">
               <h2 className="text-3xl font-bold text-white mb-4">
-                Ready to Book Coverage in Your Parish?
+                Ready to get a quote?
               </h2>
-              <p className="text-lg text-[#e8dfd1] mb-6">
-                Request professional event coverage anywhere in Jamaica
+              <p className="text-lg text-white/90 mb-6">
+                {branding.tagline}
               </p>
-              <Button 
+              <Button
                 size="lg"
-                className="bg-[#BDFF1C] hover:bg-[#a5e00f] text-white font-bold"
-                onClick={() => onNavigate(user ? 'client-dashboard' : 'signup')}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold min-h-[48px]"
+                onClick={goToQuoteFlow}
               >
-                Request Coverage Now
+                {requestCoverage}
               </Button>
             </CardContent>
           </Card>

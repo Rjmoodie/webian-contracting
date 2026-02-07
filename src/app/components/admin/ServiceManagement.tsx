@@ -8,14 +8,14 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Plus, Edit, Pause, Play, Eye, Send, CheckCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getFreshToken } from '/utils/supabase/client';
+import { api } from '/utils/supabase/api';
 
 interface ServiceManagementProps {
-  serverUrl: string;
   accessToken: string;
   userRole: string;
 }
 
-export default function ServiceManagement({ serverUrl, accessToken, userRole }: ServiceManagementProps) {
+export default function ServiceManagement({ accessToken, userRole }: ServiceManagementProps) {
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
@@ -49,7 +49,7 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
 
   const fetchServices = async () => {
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/admin/services`);
+      const response = await makeAuthenticatedRequest(`${api('admin')}/services`);
 
       if (!response) {
         setLoading(false);
@@ -97,8 +97,8 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
   const handleSave = async () => {
     try {
       const url = editingService.id
-        ? `${serverUrl}/services/${editingService.id}`
-        : `${serverUrl}/services`;
+        ? `${api('admin')}/services/${editingService.id}`
+        : `${api('admin')}/services`;
 
       const method = editingService.id ? 'PUT' : 'POST';
 
@@ -132,7 +132,7 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
 
   const handleSubmitForApproval = async (serviceId: string) => {
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}/submit-for-approval`, {
+      const response = await makeAuthenticatedRequest(`${api('admin')}/services/${serviceId}/submit-for-approval`, {
         method: 'POST',
       });
 
@@ -158,7 +158,7 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
     if (!confirm('This will make the service visible to clients. Continue?')) return;
 
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}/publish`, {
+      const response = await makeAuthenticatedRequest(`${api('admin')}/services/${serviceId}/publish`, {
         method: 'POST',
       });
 
@@ -182,7 +182,7 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
 
   const handlePause = async (serviceId: string) => {
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/services/${serviceId}/pause`, {
+      const response = await makeAuthenticatedRequest(`${api('admin')}/services/${serviceId}/pause`, {
         method: 'POST',
       });
 
@@ -238,11 +238,11 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Service Management</h2>
-          <p className="text-sm sm:text-base text-gray-600">Create and manage ECJ-branded service offerings</p>
+          <p className="text-sm sm:text-base text-gray-600">Create and manage service offerings</p>
         </div>
         {userRole === 'admin' && (
           <Button 
-            className="button-glow gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap"
+            className="button-glow bg-primary text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all w-full sm:w-auto min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap"
             onClick={handleCreateNew}
           >
             <Plus className="w-4 h-4 sm:mr-2 shrink-0" />
@@ -256,7 +256,7 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
         <Button
           variant={filter === 'all' ? 'default' : 'outline'}
           size="sm"
-          className={filter === 'all' ? 'gradient-premium-green text-white shadow-premium' : ''}
+          className={filter === 'all' ? 'bg-primary text-white shadow-premium' : ''}
           onClick={() => setFilter('all')}
         >
           All ({services.length})
@@ -364,7 +364,7 @@ export default function ServiceManagement({ serverUrl, accessToken, userRole }: 
                           {service.status === 'approved' && (
                             <Button 
                               size="sm" 
-                              className="button-glow min-h-[40px] sm:min-h-0 sm:h-8 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
+                              className="button-glow min-h-[40px] sm:min-h-0 sm:h-8 bg-primary text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
                               onClick={() => handlePublish(service.id)}
                             >
                               <Play className="w-4 h-4 sm:mr-1 shrink-0" />
@@ -457,7 +457,7 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
           </Button>
           <Button 
             onClick={onSave}
-            className="button-glow flex-1 sm:flex-none min-h-[44px] sm:min-h-0 sm:h-10 gradient-premium-green text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
+            className="button-glow flex-1 sm:flex-none min-h-[44px] sm:min-h-0 sm:h-10 bg-primary text-white shadow-premium hover:shadow-premium-lg hover:scale-105 transition-all whitespace-nowrap"
           >
             <CheckCircle className="w-4 h-4 sm:mr-2 shrink-0" />
             <span className="hidden sm:inline">Save Service</span>
@@ -540,8 +540,8 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {service.goodFor?.map((tag: string, i: number) => (
-                <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => removeTag(i)}>
+              {service.goodFor?.map((tag: string) => (
+                <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(service.goodFor?.indexOf(tag) ?? -1)}>
                   {tag} <X className="w-3 h-3 ml-1" />
                 </Badge>
               ))}
@@ -575,7 +575,7 @@ function ServiceEditor({ service, onChange, onSave, onCancel }: any) {
             </div>
             <ul className="space-y-2">
               {service.deliverables?.map((item: string, i: number) => (
-                <li key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <li key={`${item}-${i}`} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                   <span className="text-sm">{item}</span>
                   <Button 
                     variant="ghost" 

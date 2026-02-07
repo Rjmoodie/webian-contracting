@@ -7,13 +7,13 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Badge } from '@/app/components/ui/badge';
 import { Checkbox } from '@/app/components/ui/checkbox';
-import { Camera, Video, Music, Plus, X, Trash2, Image as ImageIcon, Star, Search, AlertCircle, Play } from 'lucide-react';
+import { Layers, Route, Ruler, Plus, X, Trash2, Image as ImageIcon, Star, Search, AlertCircle, Play, Video, Music } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { getFreshToken } from '/utils/supabase/client';
+import { api } from '/utils/supabase/api';
 
 interface PortfolioManagementProps {
-  serverUrl: string;
   accessToken: string;
 }
 
@@ -31,7 +31,7 @@ interface PortfolioItem {
   featured?: boolean;
 }
 
-export default function PortfolioManagement({ serverUrl, accessToken }: PortfolioManagementProps) {
+export default function PortfolioManagement({ accessToken }: PortfolioManagementProps) {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,7 +79,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
 
   const fetchPortfolio = async () => {
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/portfolio`);
+      const response = await makeAuthenticatedRequest(`${api('admin')}/portfolio`);
 
       if (!response) {
         setLoading(false);
@@ -143,8 +143,8 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
 
     try {
       const url = editingItem?.id 
-        ? `${serverUrl}/portfolio/${editingItem.id}`
-        : `${serverUrl}/portfolio`;
+        ? `${api('admin')}/portfolio/${editingItem.id}`
+        : `${api('admin')}/portfolio`;
       
       const method = editingItem?.id ? 'PUT' : 'POST';
       
@@ -215,7 +215,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
     setItems(prev => prev.filter(item => item.id !== id));
 
     try {
-      const response = await makeAuthenticatedRequest(`${serverUrl}/portfolio/${id}`, {
+      const response = await makeAuthenticatedRequest(`${api('admin')}/portfolio/${id}`, {
         method: 'DELETE',
       });
 
@@ -297,11 +297,11 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
     const iconSize = size === 'lg' ? 'w-10 h-10' : 'w-4 h-4';
     switch(category) {
       case 'photography':
-        return <Camera className={iconSize} />;
+        return <Layers className={iconSize} />;
       case 'videography':
-        return <Video className={iconSize} />;
+        return <Route className={iconSize} />;
       case 'audio':
-        return <Music className={iconSize} />;
+        return <Ruler className={iconSize} />;
       default:
         return null;
     }
@@ -345,7 +345,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#755f52]">Portfolio Management</h2>
+          <h2 className="typography-section-title">Portfolio Management</h2>
           <p className="text-sm sm:text-base text-gray-600 mt-1">
             Manage portfolio items that appear on the public portfolio page
           </p>
@@ -356,7 +356,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
             setEditingItem(null);
             resetForm();
           }}
-          className="bg-[#BDFF1C] hover:bg-[#a5e00f] text-white"
+          className="bg-primary hover:opacity-90 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Portfolio Item
@@ -365,7 +365,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
 
       {/* Form Modal */}
       {showForm && (
-        <Card className="card-premium border-2 border-[#755f52]">
+        <Card className="card-premium border-2 border-secondary">
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>{editingItem ? 'Edit Portfolio Item' : 'Add New Portfolio Item'}</CardTitle>
@@ -421,19 +421,19 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
                     <SelectContent>
                       <SelectItem value="photography">
                         <div className="flex items-center gap-2">
-                          <Camera className="w-4 h-4" />
+                          <Layers className="w-4 h-4" />
                           Photography
                         </div>
                       </SelectItem>
                       <SelectItem value="videography">
                         <div className="flex items-center gap-2">
-                          <Video className="w-4 h-4" />
+                          <Route className="w-4 h-4" />
                           Videography
                         </div>
                       </SelectItem>
                       <SelectItem value="audio">
                         <div className="flex items-center gap-2">
-                          <Music className="w-4 h-4" />
+                          <Ruler className="w-4 h-4" />
                           Audio
                         </div>
                       </SelectItem>
@@ -565,7 +565,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
                 <Button 
                   type="submit" 
                   disabled={saving}
-                  className="bg-[#BDFF1C] hover:bg-[#a5e00f] text-white disabled:opacity-50 flex-1 min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap"
+                  className="bg-primary hover:opacity-90 text-white disabled:opacity-50 flex-1 min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap"
                 >
                   {saving ? 'Saving...' : editingItem ? 'Update Item' : 'Add Item'}
                 </Button>
@@ -611,8 +611,8 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
                   onClick={() => setFilterCategory('all')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     filterCategory === 'all'
-                      ? 'bg-[#BDFF1C] text-white'
-                      : 'bg-white text-[#755f52] hover:bg-gray-100 border border-gray-200'
+                      ? 'bg-primary text-white'
+                      : 'bg-white text-secondary hover:bg-gray-100 border border-gray-200'
                   }`}
                 >
                   All
@@ -621,33 +621,33 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
                   onClick={() => setFilterCategory('photography')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                     filterCategory === 'photography'
-                      ? 'bg-[#BDFF1C] text-white'
-                      : 'bg-white text-[#755f52] hover:bg-gray-100 border border-gray-200'
+                      ? 'bg-primary text-white'
+                      : 'bg-white text-secondary hover:bg-gray-100 border border-gray-200'
                   }`}
                 >
-                  <Camera className="w-4 h-4" />
+                  <Layers className="w-4 h-4" />
                   Photo
                 </button>
                 <button
                   onClick={() => setFilterCategory('videography')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                     filterCategory === 'videography'
-                      ? 'bg-[#BDFF1C] text-white'
-                      : 'bg-white text-[#755f52] hover:bg-gray-100 border border-gray-200'
+                      ? 'bg-primary text-white'
+                      : 'bg-white text-secondary hover:bg-gray-100 border border-gray-200'
                   }`}
                 >
-                  <Video className="w-4 h-4" />
+                  <Route className="w-4 h-4" />
                   Video
                 </button>
                 <button
                   onClick={() => setFilterCategory('audio')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                     filterCategory === 'audio'
-                      ? 'bg-[#BDFF1C] text-white'
-                      : 'bg-white text-[#755f52] hover:bg-gray-100 border border-gray-200'
+                      ? 'bg-primary text-white'
+                      : 'bg-white text-secondary hover:bg-gray-100 border border-gray-200'
                   }`}
                 >
-                  <Music className="w-4 h-4" />
+                  <Ruler className="w-4 h-4" />
                   Audio
                 </button>
               </div>
@@ -659,7 +659,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
       {/* Portfolio Items List */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#755f52]"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary"></div>
         </div>
       ) : items.length === 0 ? (
         <Card className="card-premium">
@@ -672,7 +672,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
                 setEditingItem(null);
                 resetForm();
               }}
-              className="bg-[#BDFF1C] hover:bg-[#a5e00f] text-white min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap"
+              className="bg-primary hover:opacity-90 text-white min-h-[44px] sm:min-h-0 sm:h-10 whitespace-nowrap"
             >
               <Plus className="w-4 h-4 sm:mr-2 shrink-0" />
               <span className="hidden sm:inline">Add Your First Portfolio Item</span>
@@ -701,7 +701,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredItems.map((item) => (
             <Card key={item.id} className="card-premium hover-lift">
-              <div className="relative h-48 overflow-hidden bg-[#755f52] rounded-t-lg">
+              <div className="relative h-48 overflow-hidden bg-secondary rounded-t-lg">
                 {item.thumbnailUrl ? (
                   <ImageWithFallback
                     src={item.thumbnailUrl}
@@ -709,21 +709,21 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#755f52] to-[#8b7263]">
-                    {item.category === 'photography' && <Camera className="w-10 h-10 text-white/90" />}
-                    {item.category === 'videography' && <Video className="w-10 h-10 text-white/90" />}
-                    {item.category === 'audio' && <Music className="w-10 h-10 text-white/90" />}
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary to-secondary/90">
+                    {item.category === 'photography' && <Layers className="w-10 h-10 text-white/90" />}
+                    {item.category === 'videography' && <Route className="w-10 h-10 text-white/90" />}
+                    {item.category === 'audio' && <Ruler className="w-10 h-10 text-white/90" />}
                   </div>
                 )}
                 <div className="absolute top-2 left-2">
-                  <Badge className="bg-white text-[#755f52]">
+                  <Badge className="bg-white text-secondary">
                     {getCategoryIcon(item.category)}
                     <span className="ml-1 capitalize text-xs">{item.category}</span>
                   </Badge>
                 </div>
                 {item.featured && (
                   <div className="absolute top-2 right-2">
-                    <Badge className="gradient-premium-green text-white">
+                    <Badge className="bg-primary text-white">
                       <Star className="w-3 h-3 mr-1" />
                       Featured
                     </Badge>
@@ -731,7 +731,7 @@ export default function PortfolioManagement({ serverUrl, accessToken }: Portfoli
                 )}
               </div>
               <CardContent className="p-4">
-                <h3 className="font-bold text-lg text-[#755f52] mb-2 line-clamp-2">{item.title}</h3>
+                <h3 className="typography-card-title-lg mb-2 line-clamp-2">{item.title}</h3>
                 {item.description && (
                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">{item.description}</p>
                 )}

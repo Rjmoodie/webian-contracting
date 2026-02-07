@@ -2,93 +2,227 @@ import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import * as kv from "./kv_store.tsx";
-import * as emailService from "./email-service.tsx";
+
+// ── Email helpers (inline — keeps single-file deployment) ──────────
+const RESEND_API_KEY = () => Deno.env.get('RESEND_API_KEY') ?? '';
+const PLATFORM_URL  = () => Deno.env.get('PLATFORM_URL') ?? 'https://webiancontracting.com';
+const FROM_NAME     = () => Deno.env.get('EMAIL_FROM_NAME') ?? 'Webian Contracting';
+const FROM_DOMAIN   = () => Deno.env.get('EMAIL_FROM_DOMAIN') ?? 'notifications@webiancontracting.com';
+
+async function sendEmail(params: { to: string | string[]; subject: string; html: string; replyTo?: string; headers?: Record<string, string> }) {
+  const key = RESEND_API_KEY();
+  if (!key) { console.warn('[EMAIL] RESEND_API_KEY not set — skipping'); return { success: false }; }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: `${FROM_NAME()} <${FROM_DOMAIN()}>`,
+        to: Array.isArray(params.to) ? params.to : [params.to],
+        subject: params.subject,
+        html: params.html,
+        reply_to: params.replyTo,
+        headers: params.headers,
+      }),
+    });
+    if (!res.ok) { console.error('[EMAIL] send failed:', await res.text()); return { success: false }; }
+    const data = await res.json();
+    console.log(`[EMAIL] sent to ${params.to}: ${params.subject}`);
+    return { success: true, messageId: data.id };
+  } catch (e: any) { console.error('[EMAIL] error:', e); return { success: false }; }
+}
+
+function emailWrap(inner: string) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.1)">
+<tr><td style="background:linear-gradient(135deg,#E2582A 0%,#c74a22 100%);padding:32px;text-align:center">
+<h1 style="margin:0;color:#fff;font-size:24px;font-weight:bold">Webian Contracting</h1>
+<p style="margin:8px 0 0;color:rgba(255,255,255,.9);font-size:13px">Geotechnical &amp; Geological Solutions</p></td></tr>
+<tr><td style="padding:40px 32px">${inner}</td></tr>
+<tr><td style="background:#f8f8f8;padding:24px 32px;border-top:1px solid #e5e5e5">
+<p style="margin:0;color:#999;font-size:12px">This is an automated notification from Webian Contracting. Reply directly to this email or use the platform.</p>
+</td></tr></table></td></tr></table></body></html>`;
+}
+
+function emailBtn(text: string, url: string) {
+  return `<table cellpadding="0" cellspacing="0" style="margin:24px 0"><tr>
+<td style="background:#E2582A;border-radius:8px;padding:14px 28px">
+<a href="${url}" style="color:#fff;text-decoration:none;font-weight:600;font-size:15px">${text}</a>
+</td></tr></table>`;
+}
+
+// Generates a unique reply-to address for threading, e.g. project+<id>@inbound.domain.com
+function projectReplyTo(projectId: string) {
+  const domain = Deno.env.get('INBOUND_EMAIL_DOMAIN') ?? 'reply.webiancontracting.com';
+  return `project+${projectId}@${domain}`;
+}
+
+// Fire-and-forget helper — sends email to project participants
+async function notifyProjectParticipants(opts: {
+  projectId: string;
+  excludeUserId?: string;
+  subject: string;
+  html: string;
+}) {
+  try {
+    // Fetch project to get client info
+    const { data: project } = await supabase
+      .from('projects')
+      .select('client_email, client_name, project_name')
+      .eq('id', opts.projectId)
+      .single();
+    if (!project) return;
+
+    // Fetch admin/manager emails
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .in('role', ['admin', 'manager']);
+
+    const recipients = new Set<string>();
+    if (project.client_email) recipients.add(project.client_email);
+    (admins || []).forEach((a: any) => recipients.add(a.email));
+
+    // Optionally exclude the sender so they don't email themselves
+    if (opts.excludeUserId) {
+      const { data: sender } = await supabase.from('profiles').select('email').eq('id', opts.excludeUserId).single();
+      if (sender?.email) recipients.delete(sender.email);
+    }
+
+    if (recipients.size === 0) return;
+
+    await sendEmail({
+      to: Array.from(recipients),
+      subject: opts.subject,
+      html: opts.html,
+      replyTo: projectReplyTo(opts.projectId),
+      headers: { 'X-Project-Id': opts.projectId },
+    });
+  } catch (e) { console.error('[NOTIFY] error:', e); }
+}
 
 const app = new Hono();
 
-// Log all incoming requests (before CORS)
+// Log all incoming requests
 app.use('*', async (c, next) => {
-  const method = c.req.method;
-  const path = c.req.path;
-  console.log(`[EDGE FUNCTION] ${method} ${path} - Request received`);
+  console.log(`[EDGE] ${c.req.method} ${c.req.path}`);
   await next();
 });
 
-// Enable logger
 app.use('*', logger(console.log));
 
-// Enable CORS for all routes and methods
-app.use(
-  "/*",
-  cors({
-    origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 600,
-  }),
-);
+// CORS
+app.use("/*", cors({
+  origin: "*",
+  allowHeaders: ["Content-Type", "Authorization"],
+  allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  exposeHeaders: ["Content-Length"],
+  maxAge: 600,
+}));
 
-// Initialize Supabase client  
+// Supabase admin client (service role – full access, bypasses RLS)
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 );
 
-// Health check endpoint
-app.get("/make-server-d8ea749c/health", (c) => {
-  return c.json({ status: "ok" });
-});
+// ────────────────────────────────────────────
+// Helper: get authenticated user + profile
+// ────────────────────────────────────────────
+async function getAuthUser(c: any) {
+  const token = c.req.header('Authorization')?.split(' ')[1];
+  if (!token) return { user: null, profile: null, error: 'No auth token' };
 
-// ============ AUTH ROUTES ============
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return { user: null, profile: null, error: error?.message || 'Unauthorized' };
 
-// Sign up - create new user with role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  return { user, profile, error: null };
+}
+
+// Helper: log activity
+async function logActivity(data: {
+  projectId: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  action: string;
+  oldValue?: string;
+  newValue?: string;
+  details?: any;
+}) {
+  await supabase.from('activity_log').insert({
+    project_id: data.projectId,
+    user_id: data.userId,
+    user_name: data.userName,
+    user_role: data.userRole,
+    action: data.action,
+    old_value: data.oldValue || null,
+    new_value: data.newValue || null,
+    details: data.details || null,
+  });
+}
+
+// ────────────────────────────────────────────
+// HEALTH
+// ────────────────────────────────────────────
+app.get("/make-server-d8ea749c/health", (c) => c.json({ status: "ok" }));
+
+// ════════════════════════════════════════════
+//  AUTH ROUTES
+// ════════════════════════════════════════════
+
+// Sign up
 app.post("/make-server-d8ea749c/auth/signup", async (c) => {
   try {
-    const body = await c.req.json();
-    const { email, password, name, role, company } = body;
-
-    console.log(`[SIGNUP] Attempting to create user: email=${email}, role=${role}`);
-
+    const { email, password, name, role, company, phone, adminSignup } = await c.req.json();
     if (!email || !password || !name || !role) {
-      console.log("[SIGNUP] Missing required fields");
       return c.json({ error: "Missing required fields" }, 400);
     }
+    // Allow admin/manager only when signing up via the admin-signup page (adminSignup: true)
+    const allowedAdminEmails = (Deno.env.get('ALLOWED_ADMIN_EMAILS') ?? '').trim().toLowerCase().split(',').filter(Boolean);
+    const isAllowedAdminSignup =
+      adminSignup === true &&
+      (role === 'admin' || role === 'manager') &&
+      (allowedAdminEmails.length === 0 || allowedAdminEmails.includes((email ?? '').trim().toLowerCase()));
+    if (!isAllowedAdminSignup && allowedAdminEmails.length > 0 && (role === 'admin' || role === 'manager')) {
+      return c.json({ error: "Admin signup is restricted. Contact support." }, 403);
+    }
+    const safeRole = isAllowedAdminSignup ? role : (role === 'client' ? 'client' : 'client');
 
-    // Create auth user with Supabase
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      user_metadata: { name, role, company },
-      // Automatically confirm the user's email since an email server hasn't been configured.
+      user_metadata: { name, role: safeRole, company },
       email_confirm: true,
     });
 
     if (authError) {
-      console.log("Error creating user in auth during signup:", authError);
       return c.json({ error: authError.message }, 400);
     }
 
-    console.log(`[SIGNUP] Successfully created auth user: userId=${authData.user.id}`);
+    // The trigger `on_auth_user_created` auto-creates the profile row.
+    // But we may need to add phone if provided
+    if (phone) {
+      await supabase.from('profiles').update({ phone }).eq('id', authData.user.id);
+    }
 
-    // Store user profile in KV
-    const userId = authData.user.id;
-    const userProfile = {
-      id: userId,
-      email,
-      name,
-      role, // 'client', 'talent', 'admin', 'manager'
-      company: company || null,
-      createdAt: new Date().toISOString(),
-    };
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
 
-    await kv.set(`user:${userId}`, userProfile);
-    console.log(`[SIGNUP] Successfully saved user profile to KV store`);
-
-    return c.json({ user: userProfile });
+    return c.json({ user: profile });
   } catch (error) {
-    console.log("Error in signup route:", error);
+    console.error("Signup error:", error);
     return c.json({ error: "Signup failed" }, 500);
   }
 });
@@ -96,1451 +230,1272 @@ app.post("/make-server-d8ea749c/auth/signup", async (c) => {
 // Get current user profile
 app.get("/make-server-d8ea749c/auth/me", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    
-    if (!accessToken) {
-      console.log("[AUTH/ME] No access token provided");
-      return c.json({ error: "No auth token provided" }, 401);
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) {
+      return c.json({ error: error || "Profile not found" }, 401);
     }
-
-    console.log("[AUTH/ME] Validating token...");
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      console.log("[AUTH/ME] Error getting user:", error?.message || error);
-      console.log("[AUTH/ME] Error details:", JSON.stringify(error, null, 2));
-      return c.json({ error: "Unauthorized", details: error?.message || "Token validation failed" }, 401);
-    }
-
-    console.log("[AUTH/ME] User validated, ID:", user.id);
-    const userProfile = await kv.get(`user:${user.id}`);
-    
-    if (!userProfile) {
-      console.log("[AUTH/ME] User profile not found in KV store for user ID:", user.id);
-      return c.json({ error: "User profile not found", userId: user.id }, 404);
-    }
-
-    console.log("[AUTH/ME] User profile found, role:", userProfile.role);
-    return c.json({ user: userProfile });
+    return c.json({ user: profile });
   } catch (error) {
-    console.log("[AUTH/ME] Exception in auth/me route:", error);
-    return c.json({ error: "Failed to get user", details: error?.message || String(error) }, 500);
+    console.error("Auth/me error:", error);
+    return c.json({ error: "Failed to get user" }, 500);
   }
 });
 
-// ============ TALENT ROUTES ============
+// ════════════════════════════════════════════
+//  LOOKUP DATA (public)
+// ════════════════════════════════════════════
 
-// Create/Update talent application
-app.post("/make-server-d8ea749c/talent/apply", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const body = await c.req.json();
-    const {
-      skills, // ['photo', 'video', 'audio']
-      experience,
-      gear,
-      portfolioLinks,
-      coverageParishes,
-      bio,
-      references,
-    } = body;
-
-    const application = {
-      id: `talent:${user.id}`,
-      userId: user.id,
-      skills,
-      experience,
-      gear,
-      portfolioLinks,
-      coverageParishes,
-      bio,
-      references: references || [],
-      status: 'pending', // 'pending', 'approved', 'rejected'
-      tier: null, // Will be set by manager on approval
-      reliabilityScore: 100, // Internal admin metric
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    await kv.set(`talent:${user.id}`, application);
-
-    // Send notification to all admins about new talent application
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile) {
-      const allAdmins = await kv.getByPrefix('user:');
-      const adminEmails = allAdmins
-        .filter((u: any) => u.role === 'admin' || u.role === 'manager')
-        .map((u: any) => u.email);
-      
-      if (adminEmails.length > 0) {
-        const platformUrl = Deno.env.get('PLATFORM_URL') || 'https://eventcoveragejamaica.com';
-        await emailService.sendNewTalentApplicationNotification({
-          adminEmails,
-          talentId: application.id,
-          talentName: userProfile.name,
-          email: userProfile.email,
-          specialties: skills,
-          parishes: coverageParishes,
-          platformUrl,
-        }).catch(err => console.error('[EMAIL] Error sending talent application notification:', err));
-      }
-    }
-
-    return c.json({ application });
-  } catch (error) {
-    console.log("Error in talent apply route:", error);
-    return c.json({ error: "Failed to submit application" }, 500);
-  }
-});
-
-// Get talent profile (ADMIN ONLY - talents are private)
-app.get("/make-server-d8ea749c/talent/:id", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    
-    // Only admins/managers can view talent profiles, or talent viewing their own
-    const talentId = c.req.param('id');
-    if (userProfile.role !== 'admin' && userProfile.role !== 'manager' && user.id !== talentId) {
-      return c.json({ error: "Forbidden - Talents are private" }, 403);
-    }
-
-    const talent = await kv.get(`talent:${talentId}`);
-    
-    if (!talent) {
-      return c.json({ error: "Talent not found" }, 404);
-    }
-
-    return c.json({ talent });
-  } catch (error) {
-    console.log("Error in get talent route:", error);
-    return c.json({ error: "Failed to get talent" }, 500);
-  }
-});
-
-// Approve talent (Manager only)
-app.post("/make-server-d8ea749c/talents/:id/approve", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'manager' && userProfile.role !== 'admin') {
-      return c.json({ error: "Forbidden - Manager access required" }, 403);
-    }
-
-    const talentId = c.req.param('id');
-    const talent = await kv.get(talentId);
-    
-    if (!talent) {
-      return c.json({ error: "Talent not found" }, 404);
-    }
-
-    talent.status = 'approved';
-    talent.tier = 'standard'; // Default tier
-    talent.approvedBy = user.id;
-    talent.approvedAt = new Date().toISOString();
-    talent.updatedAt = new Date().toISOString();
-
-    await kv.set(talentId, talent);
-
-    // Send approval email to talent
-    const talentUser = await kv.get(`user:${talent.userId}`);
-    if (talentUser && talentUser.email) {
-      const platformUrl = Deno.env.get('PLATFORM_URL') || 'https://eventcoveragejamaica.com';
-      await emailService.sendTalentApprovalEmail({
-        talentEmail: talentUser.email,
-        talentName: talentUser.name,
-        tier: talent.tier,
-        platformUrl,
-      }).catch(err => console.error('[EMAIL] Error sending talent approval email:', err));
-    }
-
-    return c.json({ talent });
-  } catch (error) {
-    console.log("Error in approve talent route:", error);
-    return c.json({ error: "Failed to approve talent" }, 500);
-  }
-});
-
-// Reject talent (Manager only)
-app.post("/make-server-d8ea749c/talents/:id/reject", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'manager' && userProfile.role !== 'admin') {
-      return c.json({ error: "Forbidden - Manager access required" }, 403);
-    }
-
-    const talentId = c.req.param('id');
-    const talent = await kv.get(talentId);
-    
-    if (!talent) {
-      return c.json({ error: "Talent not found" }, 404);
-    }
-
-    const body = await c.req.json();
-    const { reason } = body;
-
-    talent.status = 'rejected';
-    talent.rejectionReason = reason;
-    talent.rejectedBy = user.id;
-    talent.rejectedAt = new Date().toISOString();
-    talent.updatedAt = new Date().toISOString();
-
-    await kv.set(talentId, talent);
-
-    return c.json({ talent });
-  } catch (error) {
-    console.log("Error in reject talent route:", error);
-    return c.json({ error: "Failed to reject talent" }, 500);
-  }
-});
-
-// ============ SERVICE ROUTES (NEW) ============
-
-// Create new service (Admin only)
-app.post("/make-server-d8ea749c/services", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'admin') {
-      return c.json({ error: "Forbidden - Admin access required" }, 403);
-    }
-
-    const body = await c.req.json();
-    const {
-      serviceName,
-      category, // 'photography', 'videography', 'audio'
-      subType, // 'corporate', 'festival', 'press', etc
-      description,
-      goodFor, // Use case tags
-      deliverables,
-      coverageParishes,
-      sampleMedia, // ECJ-curated samples
-      fulfillmentRules, // Internal: required tier, crew size, gear
-      internalNotes,
-    } = body;
-
-    const serviceId = `service:${Date.now()}`;
-    const service = {
-      id: serviceId,
-      serviceName,
-      category,
-      subType,
-      description,
-      goodFor,
-      deliverables,
-      coverageParishes,
-      sampleMedia: sampleMedia || [],
-      fulfillmentRules,
-      internalNotes: internalNotes || '',
-      status: 'draft', // draft, pending_approval, approved, published, paused, archived
-      createdBy: user.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      publishedAt: null,
-      // Aggregate metrics (calculated from completed jobs)
-      totalEventsDelivered: 0,
-      averageRating: 0,
-      onTimeDeliveryRate: 100,
-      repeatClientRate: 0,
-    };
-
-    await kv.set(serviceId, service);
-
-    return c.json({ service });
-  } catch (error) {
-    console.log("Error in create service route:", error);
-    return c.json({ error: "Failed to create service" }, 500);
-  }
-});
-
-// Get all published services (Public - for clients)
+// Get service types
 app.get("/make-server-d8ea749c/services", async (c) => {
   try {
-    const allServices = await kv.getByPrefix('service:');
-    const publishedServices = allServices
-      .filter(s => s.status === 'published')
-      .map(s => ({
-        id: s.id,
-        serviceName: s.serviceName,
-        category: s.category,
-        subType: s.subType,
-        description: s.description,
-        goodFor: s.goodFor,
-        deliverables: s.deliverables,
-        coverageParishes: s.coverageParishes,
-        sampleMedia: s.sampleMedia,
-        totalEventsDelivered: s.totalEventsDelivered,
-        averageRating: s.averageRating,
-        onTimeDeliveryRate: s.onTimeDeliveryRate,
-        repeatClientRate: s.repeatClientRate,
-      }));
-
-    return c.json({ services: publishedServices });
+    const { data, error } = await supabase.from('service_types').select('*');
+    if (error) return c.json({ error: error.message }, 500);
+    // Map to match old frontend format (services array)
+    return c.json({ services: data });
   } catch (error) {
-    console.log("Error in list services route:", error);
-    return c.json({ error: "Failed to list services" }, 500);
+    return c.json({ error: "Failed to fetch service types" }, 500);
   }
 });
 
-// Get single service detail (Public)
-app.get("/make-server-d8ea749c/services/:id", async (c) => {
+// Get client ratings (admin)
+app.get("/make-server-d8ea749c/client-ratings", async (c) => {
   try {
-    const serviceId = c.req.param('id');
-    const service = await kv.get(serviceId);
-    
-    if (!service || service.status !== 'published') {
-      return c.json({ error: "Service not found" }, 404);
-    }
-
-    // Return only public-facing data
-    const publicService = {
-      id: service.id,
-      serviceName: service.serviceName,
-      category: service.category,
-      subType: service.subType,
-      description: service.description,
-      goodFor: service.goodFor,
-      deliverables: service.deliverables,
-      coverageParishes: service.coverageParishes,
-      sampleMedia: service.sampleMedia,
-      totalEventsDelivered: service.totalEventsDelivered,
-      averageRating: service.averageRating,
-      onTimeDeliveryRate: service.onTimeDeliveryRate,
-      repeatClientRate: service.repeatClientRate,
-    };
-
-    return c.json({ service: publicService });
+    const { data, error } = await supabase.from('client_ratings').select('*');
+    if (error) return c.json({ error: error.message }, 500);
+    return c.json({ ratings: data });
   } catch (error) {
-    console.log("Error in get service route:", error);
-    return c.json({ error: "Failed to get service" }, 500);
+    return c.json({ error: "Failed to fetch client ratings" }, 500);
   }
 });
 
-// Update service (Admin only)
-app.put("/make-server-d8ea749c/services/:id", async (c) => {
+// Combined lookups (service types + client ratings)
+app.get("/make-server-d8ea749c/lookups", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'admin') {
-      return c.json({ error: "Forbidden - Admin access required" }, 403);
-    }
-
-    const serviceId = c.req.param('id');
-    const service = await kv.get(serviceId);
-    
-    if (!service) {
-      return c.json({ error: "Service not found" }, 404);
-    }
-
-    const updates = await c.req.json();
-    
-    // If major changes, reset to draft or pending_approval
-    const majorChangeFields = ['serviceName', 'category', 'deliverables', 'fulfillmentRules'];
-    const hasMajorChanges = majorChangeFields.some(field => updates[field] !== undefined);
-    
-    if (hasMajorChanges && service.status === 'published') {
-      updates.status = 'pending_approval';
-    }
-
-    const updatedService = {
-      ...service,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-
-    await kv.set(serviceId, updatedService);
-
-    return c.json({ service: updatedService });
+    const [serviceTypes, clientRatings] = await Promise.all([
+      supabase.from('service_types').select('*'),
+      supabase.from('client_ratings').select('*'),
+    ]);
+    return c.json({
+      serviceTypes: serviceTypes.data || [],
+      clientRatings: clientRatings.data || [],
+      riskProfiles: [
+        { value: 'low', label: 'Low', multiplier: 4 },
+        { value: 'medium', label: 'Medium', multiplier: 5 },
+        { value: 'high', label: 'High', multiplier: 7 },
+      ],
+      serviceRateFactors: {
+        gpsGridLayout: 0.06,
+        dataCollection: 0.37,
+        dataProcessing: 0.23,
+        evaluationReporting: 0.34,
+      },
+    });
   } catch (error) {
-    console.log("Error in update service route:", error);
-    return c.json({ error: "Failed to update service" }, 500);
+    return c.json({ error: "Failed to fetch lookups" }, 500);
   }
 });
 
-// Submit service for approval (Admin)
-app.post("/make-server-d8ea749c/services/:id/submit-for-approval", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+// ════════════════════════════════════════════
+//  PROJECT / RFQ ROUTES
+// ════════════════════════════════════════════
 
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'admin') {
-      return c.json({ error: "Forbidden" }, 403);
-    }
-
-    const serviceId = c.req.param('id');
-    const service = await kv.get(serviceId);
-    
-    if (!service) {
-      return c.json({ error: "Service not found" }, 404);
-    }
-
-    service.status = 'pending_approval';
-    service.updatedAt = new Date().toISOString();
-
-    await kv.set(serviceId, service);
-
-    // Send notification to all managers about new service submission
-    const allManagers = await kv.getByPrefix('user:');
-    const managerEmails = allManagers
-      .filter((u: any) => u.role === 'manager')
-      .map((u: any) => u.email);
-    
-    if (managerEmails.length > 0) {
-      const platformUrl = Deno.env.get('PLATFORM_URL') || 'https://eventcoveragejamaica.com';
-      const creatorProfile = await kv.get(`user:${service.createdBy}`);
-      await emailService.sendNewServiceSubmissionNotification({
-        managerEmails,
-        serviceId: service.id,
-        serviceName: service.serviceName,
-        category: service.category,
-        createdBy: creatorProfile?.name || 'Unknown',
-        platformUrl,
-      }).catch(err => console.error('[EMAIL] Error sending service submission notification:', err));
-    }
-
-    return c.json({ service });
-  } catch (error) {
-    console.log("Error in submit for approval route:", error);
-    return c.json({ error: "Failed to submit for approval" }, 500);
-  }
-});
-
-// Approve service (Manager only)
-app.post("/make-server-d8ea749c/services/:id/approve", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'manager') {
-      return c.json({ error: "Forbidden - Manager access required" }, 403);
-    }
-
-    const serviceId = c.req.param('id');
-    const service = await kv.get(serviceId);
-    
-    if (!service) {
-      return c.json({ error: "Service not found" }, 404);
-    }
-
-    service.status = 'approved';
-    service.approvedBy = user.id;
-    service.approvedAt = new Date().toISOString();
-    service.updatedAt = new Date().toISOString();
-
-    await kv.set(serviceId, service);
-
-    return c.json({ service });
-  } catch (error) {
-    console.log("Error in approve service route:", error);
-    return c.json({ error: "Failed to approve service" }, 500);
-  }
-});
-
-// Publish service (Admin only - explicit action)
-app.post("/make-server-d8ea749c/services/:id/publish", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'admin') {
-      return c.json({ error: "Forbidden - Admin access required" }, 403);
-    }
-
-    const serviceId = c.req.param('id');
-    const service = await kv.get(serviceId);
-    
-    if (!service) {
-      return c.json({ error: "Service not found" }, 404);
-    }
-
-    if (service.status !== 'approved') {
-      return c.json({ error: "Service must be approved before publishing" }, 400);
-    }
-
-    service.status = 'published';
-    service.publishedBy = user.id;
-    service.publishedAt = new Date().toISOString();
-    service.updatedAt = new Date().toISOString();
-
-    await kv.set(serviceId, service);
-
-    // Log publish action
-    const logEntry = {
-      id: `log:${Date.now()}`,
-      action: 'service_published',
-      serviceId: service.id,
-      userId: user.id,
-      timestamp: new Date().toISOString(),
-    };
-    await kv.set(logEntry.id, logEntry);
-
-    return c.json({ service });
-  } catch (error) {
-    console.log("Error in publish service route:", error);
-    return c.json({ error: "Failed to publish service" }, 500);
-  }
-});
-
-// Pause service (Admin only - removes from client view)
-app.post("/make-server-d8ea749c/services/:id/pause", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'admin') {
-      return c.json({ error: "Forbidden" }, 403);
-    }
-
-    const serviceId = c.req.param('id');
-    const service = await kv.get(serviceId);
-    
-    if (!service) {
-      return c.json({ error: "Service not found" }, 404);
-    }
-
-    service.status = 'paused';
-    service.pausedBy = user.id;
-    service.pausedAt = new Date().toISOString();
-    service.updatedAt = new Date().toISOString();
-
-    await kv.set(serviceId, service);
-
-    return c.json({ service });
-  } catch (error) {
-    console.log("Error in pause service route:", error);
-    return c.json({ error: "Failed to pause service" }, 500);
-  }
-});
-
-// Get all services (Admin only - includes unpublished)
-app.get("/make-server-d8ea749c/admin/services", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'admin' && userProfile.role !== 'manager') {
-      return c.json({ error: "Forbidden" }, 403);
-    }
-
-    const services = await kv.getByPrefix('service:');
-
-    return c.json({ services });
-  } catch (error) {
-    console.log("Error in get all services route:", error);
-    return c.json({ error: "Failed to get services" }, 500);
-  }
-});
-
-// Get all talents (Admin only - talents are private)
-app.get("/make-server-d8ea749c/admin/talents", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'admin' && userProfile.role !== 'manager') {
-      return c.json({ error: "Forbidden" }, 403);
-    }
-
-    const talents = await kv.getByPrefix('talent:');
-
-    return c.json({ talents });
-  } catch (error) {
-    console.log("Error in get all talents route:", error);
-    return c.json({ error: "Failed to get talents" }, 500);
-  }
-});
-
-// Get pending talent applications (Admin/Manager only)
-app.get("/make-server-d8ea749c/admin/talent/pending", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile?.role !== 'admin' && userProfile?.role !== 'manager') {
-      return c.json({ error: "Forbidden" }, 403);
-    }
-
-    const allTalents = await kv.getByPrefix('talent:');
-    const pending = allTalents.filter((t: any) => t.status === 'pending');
-
-    return c.json({ talents: pending });
-  } catch (error) {
-    console.log("Error in admin/talent/pending:", error);
-    return c.json({ error: "Failed to get pending talents" }, 500);
-  }
-});
-
-// ============ PORTFOLIO ROUTES ============
-
-// Get all portfolio items (public read - no auth required so site portfolio page works)
-app.get("/make-server-d8ea749c/portfolio", async (c) => {
-  try {
-    const items = await kv.getByPrefix('portfolio:');
-    return c.json({ items });
-  } catch (error) {
-    console.log("Error in GET /portfolio:", error);
-    return c.json({ error: "Failed to get portfolio" }, 500);
-  }
-});
-
-// Create portfolio item (admin/manager only)
-app.post("/make-server-d8ea749c/portfolio", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile?.role !== 'admin' && userProfile?.role !== 'manager') {
-      return c.json({ error: "Forbidden" }, 403);
-    }
-
-    const body = await c.req.json();
-    const id = `portfolio-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    const item = {
-      id,
-      title: body.title ?? '',
-      description: body.description ?? '',
-      category: body.category ?? 'photography',
-      mediaUrl: body.mediaUrl ?? '',
-      thumbnailUrl: body.thumbnailUrl ?? '',
-      eventType: body.eventType ?? '',
-      parish: body.parish ?? '',
-      date: body.date ?? '',
-      talentName: body.talentName ?? '',
-      featured: !!body.featured,
-    };
-
-    await kv.set(`portfolio:${id}`, item);
-    return c.json({ item });
-  } catch (error) {
-    console.log("Error in POST /portfolio:", error);
-    return c.json({ error: "Failed to create portfolio item" }, 500);
-  }
-});
-
-// Update portfolio item (admin/manager only)
-app.put("/make-server-d8ea749c/portfolio/:id", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile?.role !== 'admin' && userProfile?.role !== 'manager') {
-      return c.json({ error: "Forbidden" }, 403);
-    }
-
-    const id = c.req.param('id');
-    const existing = await kv.get(`portfolio:${id}`);
-    if (!existing) {
-      return c.json({ error: "Portfolio item not found" }, 404);
-    }
-
-    const body = await c.req.json();
-    const item = {
-      id,
-      title: body.title ?? existing.title,
-      description: body.description ?? existing.description,
-      category: body.category ?? existing.category,
-      mediaUrl: body.mediaUrl ?? existing.mediaUrl,
-      thumbnailUrl: body.thumbnailUrl ?? existing.thumbnailUrl,
-      eventType: body.eventType ?? existing.eventType,
-      parish: body.parish ?? existing.parish,
-      date: body.date ?? existing.date,
-      talentName: body.talentName ?? existing.talentName,
-      featured: body.featured !== undefined ? !!body.featured : existing.featured,
-    };
-
-    await kv.set(`portfolio:${id}`, item);
-    return c.json({ item });
-  } catch (error) {
-    console.log("Error in PUT /portfolio/:id:", error);
-    return c.json({ error: "Failed to update portfolio item" }, 500);
-  }
-});
-
-// Delete portfolio item (admin/manager only)
-app.delete("/make-server-d8ea749c/portfolio/:id", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile?.role !== 'admin' && userProfile?.role !== 'manager') {
-      return c.json({ error: "Forbidden" }, 403);
-    }
-
-    const id = c.req.param('id');
-    const existing = await kv.get(`portfolio:${id}`);
-    if (!existing) {
-      return c.json({ error: "Portfolio item not found" }, 404);
-    }
-
-    await kv.del(`portfolio:${id}`);
-    return c.json({ success: true });
-  } catch (error) {
-    console.log("Error in DELETE /portfolio/:id:", error);
-    return c.json({ error: "Failed to delete portfolio item" }, 500);
-  }
-});
-
-// ============ USER MANAGEMENT ROUTES ============
-
-// Helper function to log activity
-async function logActivity(data: {
-  requestId: string;
-  userId: string;
-  userName: string;
-  userRole: string;
-  action: string;
-  details?: any;
-  oldValue?: any;
-  newValue?: any;
-}) {
-  const logEntry = {
-    id: `activity:${data.requestId}:${Date.now()}:${Math.random().toString(36).substr(2, 9)}`,
-    requestId: data.requestId,
-    userId: data.userId,
-    userName: data.userName,
-    userRole: data.userRole,
-    action: data.action,
-    details: data.details || null,
-    oldValue: data.oldValue || null,
-    newValue: data.newValue || null,
-    timestamp: new Date().toISOString(),
-  };
-  
-  await kv.set(logEntry.id, logEntry);
-  console.log(`[ACTIVITY LOG] ${data.action} by ${data.userName} (${data.userRole}) on request ${data.requestId}`);
-  return logEntry;
-}
-
-// ============ REQUEST ROUTES ============
-
-// Create new request (Client only)
+// Create new project (RFQ) – Client only
 app.post("/make-server-d8ea749c/requests", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (!userProfile) {
-      return c.json({ error: "User profile not found" }, 404);
-    }
-
-    // Only clients can create requests
-    if (userProfile.role !== 'client') {
-      return c.json({ error: "Forbidden - Only clients can create requests" }, 403);
-    }
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+    if (profile.role !== 'client') return c.json({ error: "Only clients can submit RFQs" }, 403);
 
     const body = await c.req.json();
     const {
-      eventName,
-      eventDate,
-      eventTime,
-      parish,
-      venue,
-      venueType,
-      selectedServices,
-      turnaround,
-      budget,
+      projectName,
+      projectDescription,
+      projectLocation,
+      projectAddress,
+      projectAddressLat,
+      projectAddressLng,
+      projectAddressPlaceId,
+      serviceTypeId,
+      investigationType,
+      surveyAreaSqm,
+      clearanceAccess,
+      mobilizationNeeded,
+      accommodationNeeded,
+      serviceHeadCount,
       notes,
     } = body;
 
-    // Validate required fields
-    if (!eventName || !eventDate || !parish || !venue || !selectedServices || selectedServices.length === 0) {
-      return c.json({ error: "Missing required fields" }, 400);
+    if (!projectName || !projectDescription || !projectLocation || !serviceTypeId) {
+      return c.json({ error: "Missing required fields: projectName, projectDescription, projectLocation, serviceTypeId" }, 400);
     }
 
-    // Get service details
-    const serviceDetails = await kv.mget(selectedServices);
-
-    // Create request
-    const requestId = `request:${Date.now()}:${Math.random().toString(36).substr(2, 9)}`;
-    const request = {
-      id: requestId,
-      clientId: user.id,
-      clientName: userProfile.name,
-      clientEmail: userProfile.email,
-      eventName,
-      eventDate,
-      eventTime: eventTime || null,
-      parish,
-      venue,
-      venueType: venueType || null,
-      selectedServices, // Array of service IDs
-      serviceDetails: serviceDetails.map((s: any) => ({
-        id: s.id,
-        serviceName: s.serviceName,
-        category: s.category,
-        deliverables: s.deliverables,
-      })),
-      turnaround: turnaround || 'standard',
-      budget: budget || null,
-      notes: notes || null,
-      status: 'pending', // pending, reviewing, assigned, in_progress, completed, cancelled
-      assignedTalents: [], // Will be populated by admin
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    const projectRow = {
+      client_id: profile.id,
+      client_name: profile.company || profile.name,
+      client_contact: profile.name,
+      client_address: body.clientAddress || null,
+      client_address_lat: body.clientAddressLat ?? null,
+      client_address_lng: body.clientAddressLng ?? null,
+      client_address_place_id: body.clientAddressPlaceId ?? null,
+      client_email: profile.email,
+      client_phone: profile.phone || null,
+      project_name: projectName,
+      project_description: projectDescription,
+      project_location: projectLocation,
+      project_address: projectAddress || null,
+      project_address_lat: projectAddressLat ?? null,
+      project_address_lng: projectAddressLng ?? null,
+      project_address_place_id: projectAddressPlaceId ?? null,
+      service_type_id: serviceTypeId,
+      investigation_type: investigationType || null,
+      survey_area_sqm: surveyAreaSqm || null,
+      clearance_access: clearanceAccess || false,
+      mobilization_cost: body.mobilizationCost || 0,
+      accommodation_cost: body.accommodationCost || 0,
+      service_head_count: serviceHeadCount || 1,
+      client_notes: notes || null,
+      status: 'rfq_submitted',
     };
 
-    await kv.set(requestId, request);
+    const { data: project, error: insertError } = await supabase
+      .from('projects')
+      .insert(projectRow)
+      .select('*')
+      .single();
+
+    if (insertError) {
+      console.error("Insert project error:", insertError);
+      return c.json({ error: insertError.message }, 500);
+    }
 
     // Log activity
     await logActivity({
-      requestId,
-      userId: user.id,
-      userName: userProfile.name,
-      userRole: userProfile.role,
-      action: 'request_created',
-      details: {
-        eventName,
-        eventDate,
-        parish,
-        serviceCount: selectedServices.length,
-      },
+      projectId: project.id,
+      userId: profile.id,
+      userName: profile.name,
+      userRole: profile.role,
+      action: 'rfq_submitted',
+      details: { projectName, surveyAreaSqm },
     });
 
-    // Send email confirmation to client
-    const platformUrl = Deno.env.get('PLATFORM_URL') || 'https://eventcoveragejamaica.com';
-    await emailService.sendRequestCreatedEmail({
-      clientEmail: userProfile.email,
-      clientName: userProfile.name,
-      requestId,
-      eventName,
-      eventDate,
-      platformUrl,
-    }).catch(err => console.error('[EMAIL] Error sending request created email:', err));
+    // System message in comms panel
+    await supabase.from('project_messages').insert({
+      project_id: project.id,
+      sender_name: 'System',
+      sender_role: 'system',
+      body: `New request submitted by ${profile.name} for "${projectName}".`,
+      source: 'system',
+    });
 
-    // Send notification to all admins
-    const allAdmins = await kv.getByPrefix('user:');
-    const adminEmails = allAdmins
-      .filter((u: any) => u.role === 'admin' || u.role === 'manager')
-      .map((u: any) => u.email);
-    
+    // Email admins about new request
+    const { data: adminList } = await supabase.from('profiles').select('email').in('role', ['admin', 'manager']);
+    const adminEmails = (adminList || []).map((a: any) => a.email).filter(Boolean);
     if (adminEmails.length > 0) {
-      await emailService.sendNewRequestNotificationToAdmins({
-        adminEmails,
-        requestId,
-        clientName: userProfile.name,
-        eventName,
-        eventDate,
-        parish,
-        platformUrl,
-      }).catch(err => console.error('[EMAIL] Error sending admin notification:', err));
+      sendEmail({
+        to: adminEmails,
+        subject: `New RFQ: ${projectName}`,
+        html: emailWrap(`
+          <h2 style="margin:0 0 16px;color:#333;font-size:22px">New Request Submitted</h2>
+          <p style="color:#555;font-size:15px;line-height:1.6">
+            <strong>${profile.name}</strong> has submitted a new request for <strong>${projectName}</strong> in <strong>${body.projectLocation}</strong>.
+          </p>
+          ${emailBtn('Review Request', `${PLATFORM_URL()}?requestId=${project.id}`)}
+        `),
+        replyTo: projectReplyTo(project.id),
+      }).catch(() => {});
     }
 
-    console.log(`[CREATE REQUEST] Request ${requestId} created by ${userProfile.name}`);
-    return c.json({ request });
+    // Confirmation email to client
+    sendEmail({
+      to: profile.email,
+      subject: `Request Received: ${projectName}`,
+      html: emailWrap(`
+        <h2 style="margin:0 0 16px;color:#333;font-size:22px">Request Received!</h2>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          Hi ${profile.name}, thank you for your request for <strong>${projectName}</strong>. Our team will review it and provide a quote shortly.
+        </p>
+        ${emailBtn('View Request', `${PLATFORM_URL()}?requestId=${project.id}`)}
+      `),
+      replyTo: projectReplyTo(project.id),
+    }).catch(() => {});
+
+    return c.json({ project });
   } catch (error) {
-    console.error("Error in create request route:", error);
-    return c.json({ error: "Failed to create request" }, 500);
+    console.error("Create project error:", error);
+    return c.json({ error: "Failed to create project" }, 500);
   }
 });
 
-// Get all requests (Role-based access)
+// List projects (role-based)
 app.get("/make-server-d8ea749c/requests", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
 
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (!userProfile) {
-      return c.json({ error: "User profile not found" }, 404);
-    }
+    let query = supabase
+      .from('projects')
+      .select('*, service_types(name), client_ratings(name)')
+      .order('created_at', { ascending: false });
 
-    let requests = await kv.getByPrefix('request:');
-
-    // Filter by role
-    if (userProfile.role === 'client') {
-      // Clients only see their own requests
-      requests = requests.filter((r: any) => r.clientId === user.id);
-    } else if (userProfile.role === 'talent') {
-      // Talents only see requests assigned to them
-      requests = requests.filter((r: any) => 
-        r.assignedTalents?.some((t: any) => t.talentId === user.id)
-      );
+    if (profile.role === 'client') {
+      query = query.eq('client_id', profile.id);
     }
-    // Admins and managers see all requests
+    // admin / manager see all
+
+    const { data, error: fetchError } = await query;
+    if (fetchError) return c.json({ error: fetchError.message }, 500);
+
+    // Map to a shape the frontend expects (requests array)
+    const requests = (data || []).map((p: any) => ({
+      ...p,
+      id: p.id,
+      // compatibility: map project fields to old "request" field names the dashboard reads
+      eventName: p.project_name,
+      projectDescription: p.project_description,
+      eventDate: p.created_at,
+      parish: p.project_location,
+      venue: p.project_address || p.project_location,
+      projectAddressLat: p.project_address_lat,
+      projectAddressLng: p.project_address_lng,
+      clientName: p.client_name,
+      clientEmail: p.client_email,
+      clientAddress: p.client_address,
+      clientAddressLat: p.client_address_lat,
+      clientAddressLng: p.client_address_lng,
+      serviceType: p.service_types?.name,
+      clientRating: p.client_ratings?.name,
+    }));
 
     return c.json({ requests });
   } catch (error) {
-    console.error("Error in get requests route:", error);
-    return c.json({ error: "Failed to get requests" }, 500);
+    console.error("List projects error:", error);
+    return c.json({ error: "Failed to fetch projects" }, 500);
   }
 });
 
-// Get single request with activity log
+// Get single project
 app.get("/make-server-d8ea749c/requests/:id", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
 
-    const userProfile = await kv.get(`user:${user.id}`);
-    const requestId = c.req.param('id');
-    const request = await kv.get(requestId);
-    
-    if (!request) {
-      return c.json({ error: "Request not found" }, 404);
-    }
+    const projectId = c.req.param('id');
 
-    // Check access permissions
-    const isClient = userProfile.role === 'client' && request.clientId === user.id;
-    const isTalent = userProfile.role === 'talent' && request.assignedTalents?.some((t: any) => t.talentId === user.id);
-    const isAdminOrManager = userProfile.role === 'admin' || userProfile.role === 'manager';
+    const { data: project, error: fetchError } = await supabase
+      .from('projects')
+      .select('*, service_types(name, base_rate, discount_rate), client_ratings(name, rate_jmd)')
+      .eq('id', projectId)
+      .single();
 
-    if (!isClient && !isTalent && !isAdminOrManager) {
-      return c.json({ error: "Forbidden - You don't have access to this request" }, 403);
-    }
+    if (fetchError || !project) return c.json({ error: "Project not found" }, 404);
 
-    // Get activity log for this request
-    const allActivities = await kv.getByPrefix(`activity:${requestId}:`);
-    const activityLog = allActivities.sort((a: any, b: any) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    return c.json({ request, activityLog });
-  } catch (error) {
-    console.error("Error in get single request route:", error);
-    return c.json({ error: "Failed to get request" }, 500);
-  }
-});
-
-// Update request status (Admin/Manager only)
-app.put("/make-server-d8ea749c/requests/:id/status", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'admin' && userProfile.role !== 'manager') {
+    // Access check
+    if (profile.role === 'client' && project.client_id !== profile.id) {
       return c.json({ error: "Forbidden" }, 403);
     }
 
-    const requestId = c.req.param('id');
-    const request = await kv.get(requestId);
-    
-    if (!request) {
-      return c.json({ error: "Request not found" }, 404);
+    // Get line items
+    const { data: lineItems } = await supabase
+      .from('quote_line_items')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('sort_order');
+
+    // Get activity log
+    const { data: activityLog } = await supabase
+      .from('activity_log')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
+
+    // Get attachments
+    const { data: attachments } = await supabase
+      .from('request_attachments')
+      .select('id, file_path, file_name, file_size, content_type, created_at')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true });
+
+    // Get messages for comms panel
+    let msgQuery = supabase
+      .from('project_messages')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true });
+    if (profile.role === 'client') {
+      msgQuery = msgQuery.eq('is_internal', false);
+    }
+    const { data: messages } = await msgQuery;
+
+    // compatibility mapping
+    const request = {
+      ...project,
+      eventName: project.project_name,
+      projectDescription: project.project_description,
+      eventDate: project.created_at,
+      parish: project.project_location,
+      venue: project.project_address || project.project_location,
+      projectAddressLat: project.project_address_lat,
+      projectAddressLng: project.project_address_lng,
+      clientName: project.client_name,
+      clientEmail: project.client_email,
+      clientAddress: project.client_address,
+      clientAddressLat: project.client_address_lat,
+      clientAddressLng: project.client_address_lng,
+      attachments: attachments || [],
+    };
+
+    return c.json({ request, lineItems: lineItems || [], activityLog: activityLog || [], messages: messages || [] });
+  } catch (error) {
+    console.error("Get project error:", error);
+    return c.json({ error: "Failed to fetch project" }, 500);
+  }
+});
+
+// Register attachments for a request (client uploads to Storage first, then calls this)
+app.post("/make-server-d8ea749c/requests/:id/attachments", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+
+    const projectId = c.req.param('id');
+    const body = await c.req.json();
+    const { attachments: items } = body as { attachments: { file_path: string; file_name: string; file_size?: number; content_type?: string }[] };
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return c.json({ error: "attachments array required" }, 400);
     }
 
-    const body = await c.req.json();
-    const { status, note } = body;
+    const { data: project } = await supabase
+      .from('projects')
+      .select('id, client_id')
+      .eq('id', projectId)
+      .single();
 
-    const validStatuses = ['pending', 'reviewing', 'assigned', 'in_progress', 'completed', 'cancelled'];
+    if (!project || project.client_id !== profile.id) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const rows = items.map((a: { file_path: string; file_name: string; file_size?: number; content_type?: string }) => ({
+      project_id: projectId,
+      file_path: a.file_path,
+      file_name: a.file_name,
+      file_size: a.file_size ?? null,
+      content_type: a.content_type ?? null,
+    }));
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('request_attachments')
+      .insert(rows)
+      .select('id, file_path, file_name, file_size, content_type, created_at');
+
+    if (insertError) {
+      console.error("Insert attachments error:", insertError);
+      return c.json({ error: insertError.message }, 500);
+    }
+
+    return c.json({ attachments: inserted });
+  } catch (error) {
+    console.error("Add attachments error:", error);
+    return c.json({ error: "Failed to add attachments" }, 500);
+  }
+});
+
+// Update project status (Admin/Manager)
+app.put("/make-server-d8ea749c/requests/:id/status", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+    if (profile.role !== 'admin' && profile.role !== 'manager') {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const projectId = c.req.param('id');
+    const { status, note } = await c.req.json();
+
+    const validStatuses = [
+      'rfq_submitted','under_review','quoted','quote_accepted','quote_rejected',
+      'in_progress','data_processing','reporting','delivered','completed','cancelled'
+    ];
     if (!validStatuses.includes(status)) {
       return c.json({ error: "Invalid status" }, 400);
     }
 
-    const oldStatus = request.status;
-    request.status = status;
-    request.updatedAt = new Date().toISOString();
+    // Get current project to log the old status
+    const { data: current } = await supabase
+      .from('projects')
+      .select('status')
+      .eq('id', projectId)
+      .single();
 
-    await kv.set(requestId, request);
+    const updates: any = { status };
+    if (status === 'quoted') updates.quoted_at = new Date().toISOString();
+    if (status === 'quote_accepted') updates.accepted_at = new Date().toISOString();
+    if (status === 'completed') updates.completed_at = new Date().toISOString();
 
-    // Log activity
+    const { data: project, error: updateError } = await supabase
+      .from('projects')
+      .update(updates)
+      .eq('id', projectId)
+      .select('*')
+      .single();
+
+    if (updateError) return c.json({ error: updateError.message }, 500);
+
     await logActivity({
-      requestId,
-      userId: user.id,
-      userName: userProfile.name,
-      userRole: userProfile.role,
+      projectId,
+      userId: profile.id,
+      userName: profile.name,
+      userRole: profile.role,
       action: 'status_changed',
-      oldValue: oldStatus,
+      oldValue: current?.status,
       newValue: status,
       details: note ? { note } : null,
     });
 
-    // Send status update email to client
-    const platformUrl = Deno.env.get('PLATFORM_URL') || 'https://eventcoveragejamaica.com';
-    await emailService.sendStatusUpdateEmail({
-      clientEmail: request.clientEmail,
-      clientName: request.clientName,
-      requestId,
-      eventName: request.eventName,
-      oldStatus,
-      newStatus: status,
-      note,
-      platformUrl,
-    }).catch(err => console.error('[EMAIL] Error sending status update email:', err));
-
-    // Special handling: Send completion email if status is completed
-    if (status === 'completed') {
-      await emailService.sendRequestCompletedEmail({
-        clientEmail: request.clientEmail,
-        clientName: request.clientName,
-        requestId,
-        eventName: request.eventName,
-        platformUrl,
-      }).catch(err => console.error('[EMAIL] Error sending completion email:', err));
-    }
-
-    return c.json({ request });
-  } catch (error) {
-    console.error("Error in update request status route:", error);
-    return c.json({ error: "Failed to update request status" }, 500);
-  }
-});
-
-// Assign talents to request (Admin/Manager only)
-app.post("/make-server-d8ea749c/requests/:id/assign", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (userProfile.role !== 'admin' && userProfile.role !== 'manager') {
-      return c.json({ error: "Forbidden" }, 403);
-    }
-
-    const requestId = c.req.param('id');
-    const request = await kv.get(requestId);
-    
-    if (!request) {
-      return c.json({ error: "Request not found" }, 404);
-    }
-
-    const body = await c.req.json();
-    const { talentIds, serviceMapping } = body; // serviceMapping: { serviceId: talentId }
-
-    // Get talent details
-    const talents = await kv.mget(talentIds);
-    
-    const assignments = talents.map((talent: any, index: number) => ({
-      talentId: talent.id,
-      talentName: talent.name || talent.businessName,
-      assignedAt: new Date().toISOString(),
-      assignedBy: user.id,
-      serviceIds: serviceMapping[talent.id] || [],
-    }));
-
-    request.assignedTalents = assignments;
-    request.status = 'assigned';
-    request.updatedAt = new Date().toISOString();
-
-    await kv.set(requestId, request);
-
-    // Log activity
-    await logActivity({
-      requestId,
-      userId: user.id,
-      userName: userProfile.name,
-      userRole: userProfile.role,
-      action: 'talents_assigned',
-      details: {
-        talentCount: talents.length,
-        talentNames: talents.map((t: any) => t.name || t.businessName),
-      },
+    // System message + email for status change
+    const statusLabel = status.replace(/_/g, ' ').toUpperCase();
+    await supabase.from('project_messages').insert({
+      project_id: projectId,
+      sender_id: profile.id,
+      sender_name: profile.name,
+      sender_role: profile.role,
+      body: `Status changed to **${statusLabel}**${note ? `: ${note}` : ''}`,
+      source: 'system',
     });
+    notifyProjectParticipants({
+      projectId,
+      excludeUserId: profile.id,
+      subject: `${project?.project_name ?? 'Project'} — Status: ${statusLabel}`,
+      html: emailWrap(`
+        <h2 style="margin:0 0 16px;color:#333;font-size:22px">Status Update</h2>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          <strong>${profile.name}</strong> changed the status to <strong>${statusLabel}</strong>.
+        </p>
+        ${note ? `<div style="background:#f8f8f8;border-left:4px solid #E2582A;padding:16px;margin:16px 0;border-radius:8px"><p style="margin:0;color:#333;font-size:14px">${note}</p></div>` : ''}
+        ${emailBtn('View Request', `${PLATFORM_URL()}?requestId=${projectId}`)}
+      `),
+    }).catch(() => {});
 
-    // Send assignment email to each assigned talent
-    const platformUrl = Deno.env.get('PLATFORM_URL') || 'https://eventcoveragejamaica.com';
-    for (const assignment of assignments) {
-      // Get the talent's user profile to get their email
-      const talentUserId = assignment.talentId.replace('talent:', '');
-      const talentUser = await kv.get(`user:${talentUserId}`);
-      
-      if (talentUser && talentUser.email) {
-        await emailService.sendTalentAssignmentEmail({
-          talentEmail: talentUser.email,
-          talentName: talentUser.name,
-          requestId,
-          eventName: request.eventName,
-          eventDate: request.eventDate,
-          eventLocation: `${request.venue}, ${request.parish}`,
-          role: assignment.serviceIds.length > 0 ? assignment.serviceIds.join(', ') : 'Event Coverage',
-          platformUrl,
-        }).catch(err => console.error('[EMAIL] Error sending assignment email:', err));
-      }
-    }
-
-    return c.json({ request });
+    return c.json({ request: project });
   } catch (error) {
-    console.error("Error in assign talents route:", error);
-    return c.json({ error: "Failed to assign talents" }, 500);
+    console.error("Update status error:", error);
+    return c.json({ error: "Failed to update status" }, 500);
   }
 });
 
-// Add note to request (All roles)
+// Add note to project
 app.post("/make-server-d8ea749c/requests/:id/notes", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
 
-    const userProfile = await kv.get(`user:${user.id}`);
-    const requestId = c.req.param('id');
-    const request = await kv.get(requestId);
-    
-    if (!request) {
-      return c.json({ error: "Request not found" }, 404);
-    }
+    const projectId = c.req.param('id');
+    const { note } = await c.req.json();
 
-    // Check access
-    const isClient = userProfile.role === 'client' && request.clientId === user.id;
-    const isTalent = userProfile.role === 'talent' && request.assignedTalents?.some((t: any) => t.talentId === user.id);
-    const isAdminOrManager = userProfile.role === 'admin' || userProfile.role === 'manager';
+    if (!note) return c.json({ error: "Note is required" }, 400);
 
-    if (!isClient && !isTalent && !isAdminOrManager) {
+    // Verify access
+    const { data: project } = await supabase
+      .from('projects')
+      .select('client_id')
+      .eq('id', projectId)
+      .single();
+
+    if (!project) return c.json({ error: "Project not found" }, 404);
+    if (profile.role === 'client' && project.client_id !== profile.id) {
       return c.json({ error: "Forbidden" }, 403);
     }
 
-    const body = await c.req.json();
-    const { note, isInternal } = body; // isInternal: only visible to admin/manager/talent
-
-    if (!note) {
-      return c.json({ error: "Note is required" }, 400);
-    }
-
-    // Initialize notes array if it doesn't exist
-    if (!request.notes) {
-      request.notes = [];
-    }
-
-    const noteEntry = {
-      id: `note:${Date.now()}`,
-      userId: user.id,
-      userName: userProfile.name,
-      userRole: userProfile.role,
-      note,
-      isInternal: isInternal || false,
-      createdAt: new Date().toISOString(),
-    };
-
-    request.notes.push(noteEntry);
-    request.updatedAt = new Date().toISOString();
-
-    await kv.set(requestId, request);
-
-    // Log activity
     await logActivity({
-      requestId,
-      userId: user.id,
-      userName: userProfile.name,
-      userRole: userProfile.role,
+      projectId,
+      userId: profile.id,
+      userName: profile.name,
+      userRole: profile.role,
       action: 'note_added',
-      details: {
-        notePreview: note.substring(0, 100),
-        isInternal,
-      },
+      details: { note },
     });
 
-    return c.json({ request });
+    return c.json({ success: true });
   } catch (error) {
-    console.error("Error in add note route:", error);
+    console.error("Add note error:", error);
     return c.json({ error: "Failed to add note" }, 500);
   }
 });
 
-// Cancel request (Client or Admin)
+// Cancel project
 app.post("/make-server-d8ea749c/requests/:id/cancel", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
 
-    const userProfile = await kv.get(`user:${user.id}`);
-    const requestId = c.req.param('id');
-    const request = await kv.get(requestId);
-    
-    if (!request) {
-      return c.json({ error: "Request not found" }, 404);
-    }
+    const projectId = c.req.param('id');
+    const { reason } = await c.req.json();
 
-    // Only client who created it or admin can cancel
-    const isOwner = request.clientId === user.id;
-    const isAdmin = userProfile.role === 'admin';
+    const { data: project } = await supabase
+      .from('projects')
+      .select('client_id, status')
+      .eq('id', projectId)
+      .single();
 
-    if (!isOwner && !isAdmin) {
-      return c.json({ error: "Forbidden" }, 403);
-    }
+    if (!project) return c.json({ error: "Project not found" }, 404);
 
-    const body = await c.req.json();
-    const { reason } = body;
+    const isOwner = project.client_id === profile.id;
+    const isAdmin = profile.role === 'admin';
+    if (!isOwner && !isAdmin) return c.json({ error: "Forbidden" }, 403);
 
-    request.status = 'cancelled';
-    request.cancellationReason = reason || 'No reason provided';
-    request.cancelledBy = user.id;
-    request.cancelledAt = new Date().toISOString();
-    request.updatedAt = new Date().toISOString();
+    const { data: updated, error: updateError } = await supabase
+      .from('projects')
+      .update({ status: 'cancelled' })
+      .eq('id', projectId)
+      .select('*')
+      .single();
 
-    await kv.set(requestId, request);
+    if (updateError) return c.json({ error: updateError.message }, 500);
 
-    // Log activity
     await logActivity({
-      requestId,
-      userId: user.id,
-      userName: userProfile.name,
-      userRole: userProfile.role,
-      action: 'request_cancelled',
-      details: {
-        reason: reason || 'No reason provided',
-      },
+      projectId,
+      userId: profile.id,
+      userName: profile.name,
+      userRole: profile.role,
+      action: 'project_cancelled',
+      oldValue: project.status,
+      newValue: 'cancelled',
+      details: { reason: reason || 'No reason provided' },
     });
 
-    return c.json({ request });
+    // Comms + email
+    await supabase.from('project_messages').insert({
+      project_id: projectId,
+      sender_id: profile.id,
+      sender_name: profile.name,
+      sender_role: profile.role,
+      body: `Request cancelled. Reason: ${reason || 'No reason provided'}`,
+      source: 'system',
+    });
+    notifyProjectParticipants({
+      projectId,
+      excludeUserId: profile.id,
+      subject: `${updated?.project_name ?? 'Project'} — Cancelled`,
+      html: emailWrap(`
+        <h2 style="margin:0 0 16px;color:#333;font-size:22px">Request Cancelled</h2>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          <strong>${profile.name}</strong> cancelled this request.${reason ? ` Reason: ${reason}` : ''}
+        </p>
+        ${emailBtn('View Details', `${PLATFORM_URL()}?requestId=${projectId}`)}
+      `),
+    }).catch(() => {});
+
+    return c.json({ request: updated });
   } catch (error) {
-    console.error("Error in cancel request route:", error);
-    return c.json({ error: "Failed to cancel request" }, 500);
+    console.error("Cancel error:", error);
+    return c.json({ error: "Failed to cancel project" }, 500);
   }
 });
 
-// Get activity log for a request (All authorized users)
+// Get activity log for a project
 app.get("/make-server-d8ea749c/requests/:id/activity", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
 
-    const userProfile = await kv.get(`user:${user.id}`);
-    const requestId = c.req.param('id');
-    const request = await kv.get(requestId);
-    
-    if (!request) {
-      return c.json({ error: "Request not found" }, 404);
-    }
+    const projectId = c.req.param('id');
 
-    // Check access
-    const isClient = userProfile.role === 'client' && request.clientId === user.id;
-    const isTalent = userProfile.role === 'talent' && request.assignedTalents?.some((t: any) => t.talentId === user.id);
-    const isAdminOrManager = userProfile.role === 'admin' || userProfile.role === 'manager';
+    const { data } = await supabase
+      .from('activity_log')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
 
-    if (!isClient && !isTalent && !isAdminOrManager) {
+    return c.json({ activityLog: data || [] });
+  } catch (error) {
+    return c.json({ error: "Failed to fetch activity" }, 500);
+  }
+});
+
+// ════════════════════════════════════════════
+//  QUOTE BUILDING (Admin only)
+// ════════════════════════════════════════════
+
+// Generate / update quote for a project
+app.post("/make-server-d8ea749c/requests/:id/quote", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+    if (profile.role !== 'admin' && profile.role !== 'manager') {
       return c.json({ error: "Forbidden" }, 403);
     }
 
-    // Get all activity logs for this request
-    const allActivities = await kv.getByPrefix(`activity:${requestId}:`);
-    const activityLog = allActivities.sort((a: any, b: any) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    const projectId = c.req.param('id');
+    const body = await c.req.json();
+    const {
+      clientRatingId,
+      serviceFactor,
+      depthFactor,
+      areaDiscountedSqm,
+      riskProfile,
+      riskMultiplier,
+      clearanceAccessCost,
+      mobilizationCost,
+      accommodationCost,
+      serviceHeadCount,
+      dataCollectionDays,
+      evaluationDays,
+      estimatedWeeks,
+      lineItems,       // Array of { description, quantity, unitPrice, uom, category, sortOrder }
+      discountAmount,
+      prepaymentPct,
+      notes,
+    } = body;
 
-    return c.json({ activityLog });
+    // Fetch current project to get survey area
+    const { data: project } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
+
+    if (!project) return c.json({ error: "Project not found" }, 404);
+
+    // Calculate totals from line items
+    const computedLineItems = (lineItems || []).map((li: any, idx: number) => ({
+      project_id: projectId,
+      description: li.description,
+      quantity: li.quantity || 0,
+      unit_price: li.unitPrice || 0,
+      uom: li.uom || 'SQ M.',
+      total_price: (li.quantity || 0) * (li.unitPrice || 0),
+      category: li.category || 'professional_service',
+      sort_order: li.sortOrder ?? idx,
+    }));
+
+    const subtotal = computedLineItems.reduce((sum: number, li: any) => sum + li.total_price, 0)
+      + (clearanceAccessCost || 0)
+      + (mobilizationCost || 0)
+      + (accommodationCost || 0);
+
+    const disc = discountAmount || 0;
+    const totalJmd = subtotal - disc;
+    const usdRate = 128.5; // approximate JMD to USD
+    const totalUsd = totalJmd / usdRate;
+    const pPct = prepaymentPct || 40;
+    const prepayAmt = totalJmd * (pPct / 100);
+    const balAmt = totalJmd - prepayAmt;
+
+    // Update project with pricing info
+    const { error: projErr } = await supabase
+      .from('projects')
+      .update({
+        client_rating_id: clientRatingId || null,
+        service_factor: serviceFactor || null,
+        depth_factor: depthFactor || null,
+        area_discounted_sqm: areaDiscountedSqm || null,
+        risk_profile: riskProfile || null,
+        risk_multiplier: riskMultiplier || null,
+        clearance_access_cost: clearanceAccessCost || 0,
+        mobilization_cost: mobilizationCost || 0,
+        accommodation_cost: accommodationCost || 0,
+        service_head_count: serviceHeadCount || 1,
+        subtotal,
+        discount_amount: disc,
+        total_cost_jmd: totalJmd,
+        total_cost_usd: parseFloat(totalUsd.toFixed(2)),
+        prepayment_pct: pPct,
+        prepayment_amount: prepayAmt,
+        balance_pct: 100 - pPct,
+        balance_amount: balAmt,
+        data_collection_days: dataCollectionDays || null,
+        evaluation_days: evaluationDays || null,
+        estimated_weeks: estimatedWeeks || null,
+        admin_notes: notes || null,
+        status: 'quoted',
+        quoted_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+
+    if (projErr) return c.json({ error: projErr.message }, 500);
+
+    // Replace line items: delete old, insert new
+    await supabase.from('quote_line_items').delete().eq('project_id', projectId);
+    if (computedLineItems.length > 0) {
+      const { error: liErr } = await supabase
+        .from('quote_line_items')
+        .insert(computedLineItems);
+      if (liErr) console.error("Line item insert error:", liErr);
+    }
+
+    await logActivity({
+      projectId,
+      userId: profile.id,
+      userName: profile.name,
+      userRole: profile.role,
+      action: 'quote_generated',
+      details: { totalJmd, totalUsd: parseFloat(totalUsd.toFixed(2)), lineItemCount: computedLineItems.length },
+    });
+
+    // Comms + email for quote sent
+    await supabase.from('project_messages').insert({
+      project_id: projectId,
+      sender_id: profile.id,
+      sender_name: profile.name,
+      sender_role: profile.role,
+      body: `Quote generated: $${totalJmd.toLocaleString()} JMD (≈ $${parseFloat(totalUsd.toFixed(2)).toLocaleString()} USD). Please review and accept or decline.`,
+      source: 'system',
+    });
+    notifyProjectParticipants({
+      projectId,
+      excludeUserId: profile.id,
+      subject: `${project.project_name ?? 'Project'} — Quote Ready: $${totalJmd.toLocaleString()} JMD`,
+      html: emailWrap(`
+        <h2 style="margin:0 0 16px;color:#333;font-size:22px">Your Quote is Ready</h2>
+        <div style="background:#f8f8f8;padding:24px;margin:16px 0;border-radius:12px;text-align:center">
+          <p style="margin:0 0 8px;color:#E2582A;font-weight:600;font-size:14px;text-transform:uppercase;letter-spacing:1px">Quote Amount</p>
+          <p style="margin:0;color:#E2582A;font-size:36px;font-weight:bold">$${totalJmd.toLocaleString()}</p>
+          <p style="margin:4px 0 0;color:#999;font-size:14px">JMD (≈ $${parseFloat(totalUsd.toFixed(2)).toLocaleString()} USD)</p>
+        </div>
+        <p style="color:#555;font-size:15px;line-height:1.6">Log in to review the full quote, line items, and payment terms. You can accept or decline directly from the platform.</p>
+        ${emailBtn('Review Quote', `${PLATFORM_URL()}?requestId=${projectId}`)}
+      `),
+    }).catch(() => {});
+
+    // Return updated project with line items
+    const { data: updated } = await supabase
+      .from('projects')
+      .select('*, service_types(name), client_ratings(name)')
+      .eq('id', projectId)
+      .single();
+
+    const { data: items } = await supabase
+      .from('quote_line_items')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('sort_order');
+
+    return c.json({ project: updated, lineItems: items });
   } catch (error) {
-    console.error("Error in get activity log route:", error);
-    return c.json({ error: "Failed to get activity log" }, 500);
+    console.error("Quote generation error:", error);
+    return c.json({ error: "Failed to generate quote" }, 500);
   }
 });
 
-// ============ USER MANAGEMENT ROUTES ============
+// Client accepts quote
+app.post("/make-server-d8ea749c/requests/:id/quote/accept", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
 
-// Get all users (Admin/Manager only)
+    const projectId = c.req.param('id');
+
+    const { data: project } = await supabase
+      .from('projects')
+      .select('client_id, status')
+      .eq('id', projectId)
+      .single();
+
+    if (!project) return c.json({ error: "Project not found" }, 404);
+    if (profile.role === 'client' && project.client_id !== profile.id) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+    if (project.status !== 'quoted') {
+      return c.json({ error: "Quote can only be accepted when status is 'quoted'" }, 400);
+    }
+
+    const { data: updated } = await supabase
+      .from('projects')
+      .update({
+        status: 'quote_accepted',
+        accepted_at: new Date().toISOString(),
+      })
+      .eq('id', projectId)
+      .select('*')
+      .single();
+
+    await logActivity({
+      projectId,
+      userId: profile.id,
+      userName: profile.name,
+      userRole: profile.role,
+      action: 'quote_accepted',
+    });
+
+    await supabase.from('project_messages').insert({
+      project_id: projectId,
+      sender_id: profile.id,
+      sender_name: profile.name,
+      sender_role: profile.role,
+      body: `Quote accepted by ${profile.name}.`,
+      source: 'system',
+    });
+    notifyProjectParticipants({
+      projectId,
+      excludeUserId: profile.id,
+      subject: `${updated?.project_name ?? 'Project'} — Quote Accepted`,
+      html: emailWrap(`
+        <h2 style="margin:0 0 16px;color:#333;font-size:22px">Quote Accepted</h2>
+        <p style="color:#555;font-size:15px;line-height:1.6"><strong>${profile.name}</strong> has accepted the quote. The project will move forward.</p>
+        ${emailBtn('View Project', `${PLATFORM_URL()}?requestId=${projectId}`)}
+      `),
+    }).catch(() => {});
+
+    return c.json({ project: updated });
+  } catch (error) {
+    return c.json({ error: "Failed to accept quote" }, 500);
+  }
+});
+
+// Client rejects quote
+app.post("/make-server-d8ea749c/requests/:id/quote/reject", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+
+    const projectId = c.req.param('id');
+    const { reason } = await c.req.json();
+
+    const { data: project } = await supabase
+      .from('projects')
+      .select('client_id, status')
+      .eq('id', projectId)
+      .single();
+
+    if (!project) return c.json({ error: "Project not found" }, 404);
+    if (profile.role === 'client' && project.client_id !== profile.id) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const { data: updated } = await supabase
+      .from('projects')
+      .update({ status: 'quote_rejected' })
+      .eq('id', projectId)
+      .select('*')
+      .single();
+
+    await logActivity({
+      projectId,
+      userId: profile.id,
+      userName: profile.name,
+      userRole: profile.role,
+      action: 'quote_rejected',
+      details: { reason },
+    });
+
+    await supabase.from('project_messages').insert({
+      project_id: projectId,
+      sender_id: profile.id,
+      sender_name: profile.name,
+      sender_role: profile.role,
+      body: `Quote declined by ${profile.name}.${reason ? ` Reason: ${reason}` : ''}`,
+      source: 'system',
+    });
+    notifyProjectParticipants({
+      projectId,
+      excludeUserId: profile.id,
+      subject: `${updated?.project_name ?? 'Project'} — Quote Declined`,
+      html: emailWrap(`
+        <h2 style="margin:0 0 16px;color:#333;font-size:22px">Quote Declined</h2>
+        <p style="color:#555;font-size:15px;line-height:1.6"><strong>${profile.name}</strong> has declined the quote.${reason ? ` Reason: ${reason}` : ''}</p>
+        ${emailBtn('View Details', `${PLATFORM_URL()}?requestId=${projectId}`)}
+      `),
+    }).catch(() => {});
+
+    return c.json({ project: updated });
+  } catch (error) {
+    return c.json({ error: "Failed to reject quote" }, 500);
+  }
+});
+
+// ════════════════════════════════════════════
+//  ADMIN ROUTES
+// ════════════════════════════════════════════
+
+// Get all users
 app.get("/make-server-d8ea749c/admin/users", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+    if (profile.role !== 'admin' && profile.role !== 'manager') {
+      return c.json({ error: "Forbidden" }, 403);
     }
 
-    // Check if user has admin or manager role
-    const userProfile = await kv.get(`user:${user.id}`);
-    if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'manager')) {
-      return c.json({ error: "Forbidden - Admin or Manager access required" }, 403);
-    }
+    const { data, error: fetchError } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-    // Get all user profiles from KV store
-    const allUsers = await kv.getByPrefix('user:');
-    
-    // Format users for response
-    const users = allUsers.map((userData: any) => ({
-      id: userData.id,
-      email: userData.email,
-      name: userData.name,
-      role: userData.role,
-      company: userData.company || null,
-      createdAt: userData.createdAt,
-    }));
-
-    console.log(`[GET /admin/users] Retrieved ${users.length} users`);
-    return c.json({ users });
+    if (fetchError) return c.json({ error: fetchError.message }, 500);
+    return c.json({ users: data });
   } catch (error) {
-    console.error('[GET /admin/users] Error fetching users:', error);
     return c.json({ error: "Failed to fetch users" }, 500);
   }
 });
 
-// Update user role (Admin only)
+// Update user role
 app.put("/make-server-d8ea749c/admin/users/:userId/role", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    // Check if user has admin role (only admins can change roles)
-    const adminProfile = await kv.get(`user:${user.id}`);
-    if (!adminProfile || adminProfile.role !== 'admin') {
-      return c.json({ error: "Forbidden - Admin access required" }, 403);
-    }
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+    if (profile.role !== 'admin') return c.json({ error: "Forbidden" }, 403);
 
     const userId = c.req.param('userId');
-    const body = await c.req.json();
-    const { role } = body;
+    const { role } = await c.req.json();
 
-    // Validate role
-    const validRoles = ['client', 'talent', 'manager', 'admin'];
-    if (!role || !validRoles.includes(role)) {
-      return c.json({ error: "Invalid role. Must be one of: client, talent, manager, admin" }, 400);
+    const validRoles = ['client', 'admin', 'manager'];
+    if (!validRoles.includes(role)) {
+      return c.json({ error: "Invalid role" }, 400);
     }
-
-    // Prevent admin from changing their own role
-    if (userId === user.id) {
+    if (userId === profile.id) {
       return c.json({ error: "Cannot change your own role" }, 400);
     }
 
-    // Get the user to update
-    const targetUser = await kv.get(`user:${userId}`);
-    if (!targetUser) {
-      return c.json({ error: "User not found" }, 404);
-    }
+    const { data, error: updateError } = await supabase
+      .from('profiles')
+      .update({ role })
+      .eq('id', userId)
+      .select('*')
+      .single();
 
-    // Update user role in KV store
-    const updatedUser = {
-      ...targetUser,
-      role,
-      updatedAt: new Date().toISOString(),
-    };
-    await kv.set(`user:${userId}`, updatedUser);
+    if (updateError) return c.json({ error: updateError.message }, 500);
 
-    // Also update user metadata in Supabase Auth
-    try {
-      await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: {
-          ...targetUser,
-          role,
-        },
-      });
-      console.log(`[PUT /admin/users/:userId/role] Updated Supabase Auth metadata for user ${userId}`);
-    } catch (authError) {
-      console.error('[PUT /admin/users/:userId/role] Error updating Supabase Auth metadata:', authError);
-      // Continue even if auth update fails, as KV store was updated
-    }
+    // Also update auth metadata
+    await supabase.auth.admin.updateUserById(userId, {
+      user_metadata: { role },
+    }).catch(err => console.error('Auth metadata update error:', err));
 
-    console.log(`[PUT /admin/users/:userId/role] Updated user ${userId} role to ${role}`);
-    return c.json({ 
-      success: true, 
-      user: updatedUser,
-      message: `User role updated to ${role}` 
-    });
+    return c.json({ success: true, user: data });
   } catch (error) {
-    console.error('[PUT /admin/users/:userId/role] Error updating user role:', error);
-    return c.json({ error: "Failed to update user role" }, 500);
+    return c.json({ error: "Failed to update role" }, 500);
   }
+});
+
+// Admin dashboard stats
+app.get("/make-server-d8ea749c/admin/stats", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+    if (profile.role !== 'admin' && profile.role !== 'manager') {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const [projectsRes, usersRes] = await Promise.all([
+      supabase.from('projects').select('status, total_cost_jmd, payment_status'),
+      supabase.from('profiles').select('role'),
+    ]);
+
+    const projects = projectsRes.data || [];
+    const users = usersRes.data || [];
+
+    const stats = {
+      totalProjects: projects.length,
+      rfqPending: projects.filter((p: any) => p.status === 'rfq_submitted').length,
+      quoted: projects.filter((p: any) => p.status === 'quoted').length,
+      inProgress: projects.filter((p: any) => ['in_progress','data_processing','reporting'].includes(p.status)).length,
+      completed: projects.filter((p: any) => p.status === 'completed').length,
+      totalRevenueJmd: projects
+        .filter((p: any) => p.payment_status === 'paid')
+        .reduce((sum: number, p: any) => sum + (p.total_cost_jmd || 0), 0),
+      totalClients: users.filter((u: any) => u.role === 'client').length,
+      totalAdmins: users.filter((u: any) => u.role === 'admin' || u.role === 'manager').length,
+    };
+
+    return c.json({ stats });
+  } catch (error) {
+    return c.json({ error: "Failed to fetch stats" }, 500);
+  }
+});
+
+// ════════════════════════════════════════════
+//  ADMIN SERVICE TYPE MANAGEMENT
+// ════════════════════════════════════════════
+
+// These satisfy the frontend's /admin/services calls by returning service_types
+app.get("/make-server-d8ea749c/admin/services", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+    if (profile.role !== 'admin' && profile.role !== 'manager') {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+    const { data } = await supabase.from('service_types').select('*');
+    return c.json({ services: data || [] });
+  } catch (error) {
+    return c.json({ error: "Failed to fetch services" }, 500);
+  }
+});
+
+// Create service type (admin)
+app.post("/make-server-d8ea749c/services", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+    if (profile.role !== 'admin') return c.json({ error: "Forbidden" }, 403);
+
+    const { name, description, baseRate, discountRate } = await c.req.json();
+    const { data, error: insertError } = await supabase
+      .from('service_types')
+      .insert({
+        name,
+        description: description || null,
+        base_rate: baseRate || 200,
+        discount_rate: discountRate || 150,
+      })
+      .select('*')
+      .single();
+
+    if (insertError) return c.json({ error: insertError.message }, 500);
+    return c.json({ service: data });
+  } catch (error) {
+    return c.json({ error: "Failed to create service type" }, 500);
+  }
+});
+
+// Stub routes that old frontend components may call
+// These return empty arrays to prevent 404 errors
+app.get("/make-server-d8ea749c/admin/talents", async (c) => {
+  return c.json({ talents: [] });
+});
+
+app.get("/make-server-d8ea749c/admin/talent/pending", async (c) => {
+  return c.json({ talents: [] });
+});
+
+app.get("/make-server-d8ea749c/portfolio", async (c) => {
+  return c.json({ items: [] });
+});
+
+app.get("/make-server-d8ea749c/services/:id", async (c) => {
+  try {
+    const id = c.req.param('id');
+    const { data } = await supabase
+      .from('service_types')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (!data) return c.json({ error: "Not found" }, 404);
+    return c.json({ service: data });
+  } catch (error) {
+    return c.json({ error: "Failed to fetch service" }, 500);
+  }
+});
+
+// ════════════════════════════════════════════
+//  PROJECT COMMUNICATIONS
+// ════════════════════════════════════════════
+
+// List messages for a project
+app.get("/make-server-d8ea749c/requests/:id/messages", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+
+    const projectId = c.req.param('id');
+
+    // Verify access
+    const { data: project } = await supabase
+      .from('projects')
+      .select('client_id')
+      .eq('id', projectId)
+      .single();
+    if (!project) return c.json({ error: "Project not found" }, 404);
+    if (profile.role === 'client' && project.client_id !== profile.id) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    let query = supabase
+      .from('project_messages')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true });
+
+    // Clients only see non-internal messages
+    if (profile.role === 'client') {
+      query = query.eq('is_internal', false);
+    }
+
+    const { data, error: fetchError } = await query;
+    if (fetchError) return c.json({ error: fetchError.message }, 500);
+
+    return c.json({ messages: data || [] });
+  } catch (error) {
+    console.error("Get messages error:", error);
+    return c.json({ error: "Failed to fetch messages" }, 500);
+  }
+});
+
+// Send a new message
+app.post("/make-server-d8ea749c/requests/:id/messages", async (c) => {
+  try {
+    const { profile, error } = await getAuthUser(c);
+    if (error || !profile) return c.json({ error: "Unauthorized" }, 401);
+
+    const projectId = c.req.param('id');
+    const { body: msgBody, isInternal } = await c.req.json();
+
+    if (!msgBody || !msgBody.trim()) return c.json({ error: "Message body is required" }, 400);
+
+    // Verify access
+    const { data: project } = await supabase
+      .from('projects')
+      .select('client_id, project_name')
+      .eq('id', projectId)
+      .single();
+    if (!project) return c.json({ error: "Project not found" }, 404);
+    if (profile.role === 'client' && project.client_id !== profile.id) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    // Clients cannot send internal messages
+    const internal = profile.role === 'client' ? false : !!isInternal;
+
+    const { data: message, error: insertError } = await supabase
+      .from('project_messages')
+      .insert({
+        project_id: projectId,
+        sender_id: profile.id,
+        sender_name: profile.name,
+        sender_role: profile.role,
+        body: msgBody.trim(),
+        is_internal: internal,
+        source: 'panel',
+      })
+      .select('*')
+      .single();
+
+    if (insertError) return c.json({ error: insertError.message }, 500);
+
+    // Log as note in activity log for audit trail
+    await logActivity({
+      projectId,
+      userId: profile.id,
+      userName: profile.name,
+      userRole: profile.role,
+      action: 'message_sent',
+      details: { body: msgBody.trim(), isInternal: internal },
+    });
+
+    // Send email notification (skip for internal notes)
+    if (!internal) {
+      notifyProjectParticipants({
+        projectId,
+        excludeUserId: profile.id,
+        subject: `${project.project_name ?? 'Project'} — New message from ${profile.name}`,
+        html: emailWrap(`
+          <h2 style="margin:0 0 16px;color:#333;font-size:22px">New Message</h2>
+          <p style="color:#555;font-size:15px;line-height:1.6">
+            <strong>${profile.name}</strong> (${profile.role}) wrote:
+          </p>
+          <div style="background:#f8f8f8;border-left:4px solid #E2582A;padding:16px;margin:16px 0;border-radius:8px">
+            <p style="margin:0;color:#333;font-size:14px;line-height:1.6;white-space:pre-wrap">${msgBody.trim()}</p>
+          </div>
+          <p style="color:#999;font-size:13px">Reply to this email or use the platform to respond.</p>
+          ${emailBtn('View Conversation', `${PLATFORM_URL()}?requestId=${projectId}`)}
+        `),
+      }).catch(() => {});
+    }
+
+    return c.json({ message });
+  } catch (error) {
+    console.error("Send message error:", error);
+    return c.json({ error: "Failed to send message" }, 500);
+  }
+});
+
+// ════════════════════════════════════════════
+//  INBOUND EMAIL WEBHOOK (Resend)
+//  Captures email replies and inserts them
+//  into the project_messages table.
+// ════════════════════════════════════════════
+app.post("/make-server-d8ea749c/webhooks/inbound-email", async (c) => {
+  try {
+    const payload = await c.req.json();
+
+    // Resend sends: { from, to, subject, text, html, headers }
+    const { from, to, subject, text, html: htmlBody } = payload;
+
+    // Extract project ID from the "to" address: project+<uuid>@inbound.domain.com
+    const toAddress = Array.isArray(to) ? to[0] : to;
+    const match = toAddress?.match?.(/project\+([a-f0-9-]+)@/i);
+    if (!match) {
+      console.warn('[INBOUND] Could not extract project ID from:', toAddress);
+      return c.json({ ok: false, reason: 'no project id in address' }, 200);
+    }
+    const projectId = match[1];
+
+    // Look up sender by email
+    const senderEmail = typeof from === 'string' ? from.replace(/.*<(.+)>.*/, '$1').trim() : from?.address || '';
+    const { data: senderProfile } = await supabase
+      .from('profiles')
+      .select('id, name, role, email')
+      .ilike('email', senderEmail)
+      .single();
+
+    const senderName = senderProfile?.name || senderEmail;
+    const senderRole = senderProfile?.role || 'external';
+
+    // Strip common email reply signatures / quoted text
+    const cleanBody = (text || '')
+      .replace(/\r\n/g, '\n')
+      .split(/\n--\n|\nOn .+ wrote:|\n_{3,}|\n>{2,}/)[0]
+      .trim();
+
+    if (!cleanBody) {
+      return c.json({ ok: false, reason: 'empty body after cleaning' }, 200);
+    }
+
+    const { data: message, error: insertError } = await supabase
+      .from('project_messages')
+      .insert({
+        project_id: projectId,
+        sender_id: senderProfile?.id || null,
+        sender_name: senderName,
+        sender_role: senderRole,
+        body: cleanBody,
+        source: 'email',
+      })
+      .select('*')
+      .single();
+
+    if (insertError) {
+      console.error('[INBOUND] insert error:', insertError);
+      return c.json({ ok: false, reason: insertError.message }, 200);
+    }
+
+    // Log activity
+    await logActivity({
+      projectId,
+      userId: senderProfile?.id || '00000000-0000-0000-0000-000000000000',
+      userName: senderName,
+      userRole: senderRole,
+      action: 'message_received_email',
+      details: { subject, from: senderEmail },
+    });
+
+    // Notify others in the thread
+    notifyProjectParticipants({
+      projectId,
+      excludeUserId: senderProfile?.id,
+      subject: subject || `Reply on project`,
+      html: emailWrap(`
+        <h2 style="margin:0 0 16px;color:#333;font-size:22px">New Reply</h2>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          <strong>${senderName}</strong> replied via email:
+        </p>
+        <div style="background:#f8f8f8;border-left:4px solid #E2582A;padding:16px;margin:16px 0;border-radius:8px">
+          <p style="margin:0;color:#333;font-size:14px;line-height:1.6;white-space:pre-wrap">${cleanBody}</p>
+        </div>
+        ${emailBtn('View Conversation', `${PLATFORM_URL()}?requestId=${projectId}`)}
+      `),
+    }).catch(() => {});
+
+    console.log(`[INBOUND] Message from ${senderEmail} inserted into project ${projectId}`);
+    return c.json({ ok: true, messageId: message?.id });
+  } catch (error) {
+    console.error('[INBOUND] webhook error:', error);
+    return c.json({ ok: false, reason: 'server error' }, 200); // 200 so Resend doesn't retry
+  }
+});
+
+// Catch-all for any other routes to prevent 404 crashes
+app.all("/make-server-d8ea749c/*", (c) => {
+  return c.json({ error: "Route not found", path: c.req.path }, 404);
 });
 
 Deno.serve(app.fetch);
