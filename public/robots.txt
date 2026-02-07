@@ -1,6 +1,25 @@
-# Event Coverage Jamaica - robots.txt
+# Webian Contracting & Geophysics Ltd - robots.txt
+# https://webiancontracting.com
+
 User-agent: *
 Allow: /
 
-# Sitemap (update base URL if your domain differs)
-Sitemap: https://eventcoveragejamaica.com/sitemap.xml
+# Block dashboard/auth routes (no value for indexing)
+Disallow: /api/
+Disallow: /*login*
+Disallow: /*signup*
+Disallow: /*admin*
+Disallow: /*dashboard*
+
+# Allow all major crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Sitemap location
+Sitemap: https://webiancontracting.com/sitemap.xml

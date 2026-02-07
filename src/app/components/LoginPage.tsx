@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
-import { Card } from '@/app/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import BrandLogo from '@/app/components/ECJLogo';
 import { getBranding } from '@/app/config';
 
@@ -16,6 +15,7 @@ interface LoginPageProps {
 export default function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const branding = getBranding();
 
@@ -34,120 +34,120 @@ export default function LoginPage({ onLogin, onNavigate }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 scroll-smooth">{/* Added scroll-smooth */}
-      {/* Sticky minimal nav */}
-      <nav className="bg-white fixed top-0 left-0 right-0 z-50 border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center cursor-pointer" onClick={() => onNavigate('home')} aria-label={`${branding.companyName} – Home`}>
-              <BrandLogo size="xl" className="flex-shrink-0 max-h-full" />
-            </div>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Back to home — top-left */}
+      <div className="p-4 sm:p-6">
+        <button
+          type="button"
+          onClick={() => onNavigate('home')}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to home
+        </button>
+      </div>
+
+      {/* Centered form */}
+      <div className="flex-1 flex items-start sm:items-center justify-center px-4 pb-12">
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <button
+              type="button"
+              onClick={() => onNavigate('home')}
+              className="cursor-pointer"
+              aria-label={`${branding.companyName} — Home`}
+            >
+              <BrandLogo size="lg" />
+            </button>
           </div>
-        </div>
-      </nav>
 
-      {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex justify-center mb-8">
-            <BrandLogo size="xl" />
+          {/* Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+            <div className="mb-6">
+              <h1 className="text-xl font-semibold text-gray-900">Sign in to your account</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Enter your email and password to continue.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              {/* Email */}
+              <div>
+                <Label htmlFor="login-email" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  Email address
+                </Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 border border-gray-300 rounded-lg text-sm placeholder:text-gray-400 focus:border-primary focus:ring-1 focus:ring-primary cursor-text"
+                  autoComplete="email"
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <Label htmlFor="login-password" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-11 pr-10 border border-gray-300 rounded-lg text-sm placeholder:text-gray-400 focus:border-primary focus:ring-1 focus:ring-primary cursor-text"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-medium text-sm rounded-lg transition-colors"
+                disabled={loading || !email.trim() || !password}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    Signing in...
+                  </span>
+                ) : (
+                  'Sign in'
+                )}
+              </Button>
+            </form>
           </div>
 
-          <Card className="border-0 shadow-premium-xl bg-white rounded-2xl overflow-hidden card-premium">
-            <div className="p-4 sm:p-6 md:p-8">
-              <div className="mb-6 sm:mb-8">
-                <h2 className="typography-page-title mb-2">Sign In</h2>
-                <p className="typography-body-sm-muted">Enter your credentials to access your account</p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <Label htmlFor="email" className="typography-label">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-primary rounded-xl"
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Password Field */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label htmlFor="password" className="typography-label">Password</Label>
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-11 min-h-[44px] sm:h-12 border-2 border-gray-200 focus:border-primary rounded-xl"
-                      autoComplete="current-password"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  className="w-full min-h-[48px] sm:h-12 bg-primary text-white font-semibold text-sm sm:text-base rounded-xl shadow-lg hover:opacity-90 transition-all"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      Signing in...
-                    </div>
-                  ) : (
-                    'Sign In'
-                  )}
-                </Button>
-              </form>
-
-              <div className="mt-8 pt-6 border-t border-gray-200 space-y-2">
-                <p className="text-center typography-body-muted">
-                  Don't have an account?{' '}
-                  <button
-                    onClick={() => onNavigate('signup')}
-                    className="typography-label hover:text-primary transition cursor-pointer"
-                  >
-                    Create Account
-                  </button>
-                </p>
-                <p className="text-center typography-caption">
-                  Admin access?{' '}
-                  <button
-                    onClick={() => onNavigate('admin-signup')}
-                    className="text-secondary font-medium hover:underline"
-                  >
-                    Admin signup
-                  </button>
-                </p>
-              </div>
-
-              <div className="mt-6">
-                <button
-                  onClick={() => onNavigate('home')}
-                  className="flex items-center gap-2 typography-body-sm-muted hover:text-secondary transition mx-auto cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to home
-                </button>
-              </div>
-            </div>
-          </Card>
+          {/* Footer links */}
+          <div className="mt-6 text-center space-y-3">
+            <p className="text-sm text-gray-500">
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={() => onNavigate('signup')}
+                className="font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
+              >
+                Create account
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>

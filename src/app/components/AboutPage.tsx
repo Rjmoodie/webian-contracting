@@ -3,6 +3,7 @@ import { Button } from '@/app/components/ui/button';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { ArrowLeft, Shield, Award, MapPin, CheckCircle2, Target, Heart } from 'lucide-react';
 import Navigation from './Navigation';
+import SEOHead, { buildAboutPageJsonLd } from '@/app/components/SEOHead';
 import { getBranding, getContent } from '@/app/config';
 
 const DIFFERENTIATOR_ICONS = [Shield, Award, MapPin, Award] as const;
@@ -49,6 +50,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead jsonLd={buildAboutPageJsonLd()} />
       <Navigation user={user} onNavigate={onNavigate} onLogout={onLogout} variant="public" showNavLinks={false} />
       <div className="h-24" />
 
@@ -63,10 +65,10 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
             Back to Home
           </Button>
           <h1 className="typography-page-title-hero mb-4 sm:mb-6">
-            About {branding.companyName}
+            About WCI Geophysics — Jamaica's GPR &amp; Geotechnical Experts Since 2011
           </h1>
           <p className="typography-body text-white/90 sm:text-lg leading-relaxed">
-            {branding.tagline}
+            Founded in 2011, Webian Contracting &amp; Geophysics Ltd provides Jamaica and the wider Caribbean with cutting-edge Ground Penetrating Radar surveys and applied geophysics solutions.
           </p>
         </div>
       </section>

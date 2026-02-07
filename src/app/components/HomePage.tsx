@@ -5,6 +5,7 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import BrandLogo from '@/app/components/ECJLogo';
+import SEOHead, { buildFAQJsonLd } from '@/app/components/SEOHead';
 import { getBranding, getContent } from '@/app/config';
 import concreteAssessmentImg from '../../assets/concrete-assessment.png';
 
@@ -65,6 +66,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-muted/80 scroll-smooth">
+      <SEOHead jsonLd={buildFAQJsonLd()} />
       <Navigation
         user={user}
         onNavigate={onNavigate}
@@ -75,7 +77,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       <div className="h-24" />
 
       {/* Hero — main ad video so visitors immediately see what we do */}
-      <section className="relative overflow-hidden bg-secondary" aria-label="Hero">
+      <section className="relative overflow-hidden bg-secondary" aria-label="GPR and Geotechnical Solutions in Jamaica">
         <div className="absolute inset-0 z-0">
           <video
             autoPlay
@@ -84,7 +86,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             playsInline
             preload="auto"
             className="w-full h-full object-cover"
-            aria-label={branding.tagline ?? 'Webian Contracting — Geotechnical and geological solutions'}
+            aria-label="Webian Contracting – Ground Penetrating Radar surveys and geotechnical solutions in Jamaica"
             poster={branding.heroImageUrl ?? 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1920&q=80'}
           >
             <source src="/webian-ad.mp4" type="video/mp4" />
@@ -95,10 +97,10 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 min-h-[50vh] flex flex-col justify-end">
           <div className="max-w-2xl">
             <h1 className="typography-page-title-hero mb-3">
-              {branding.heroTitle}
+              GPR Surveys &amp; Geotechnical Solutions in Jamaica
             </h1>
             <p className="typography-body-sm text-white/80 mb-8 max-w-lg">
-              {branding.tagline}
+              {branding.tagline} — Ground Penetrating Radar (GPR) services, utility location, infrastructure assessment, and subsurface investigation across Jamaica and the Caribbean.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button
@@ -122,7 +124,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       </section>
 
       {/* Trust Signals / Features */}
-      <section className="py-8 sm:py-12 px-4 bg-card">
+      <section className="py-8 sm:py-12 px-4 bg-card" aria-label="Why choose WCI Geophysics">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {features.slice(0, 4).map((feature, i) => {
@@ -130,9 +132,9 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
               return (
                 <div key={feature ?? i} className="text-center group">
                   <div className="w-14 h-14 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform shadow-md">
-                    <Icon className="w-7 h-7" />
+                    <Icon className="w-7 h-7" aria-hidden="true" />
                   </div>
-                  <h3 className="typography-card-title mb-1">{feature}</h3>
+                  <h2 className="typography-card-title mb-1">{feature}</h2>
                   <p className="typography-caption">{phrasesLearn}</p>
                 </div>
               );
@@ -146,12 +148,12 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
             {/* Our Mission */}
-            <div className="flex flex-col">
-              <h2 id="mission-heading" className="typography-section-title text-white mb-4">Our Mission</h2>
+            <article className="flex flex-col">
+              <h2 id="mission-heading" className="typography-section-title text-white mb-4">Our Mission — Applied Geophysics for Jamaica</h2>
               <div className="relative overflow-hidden rounded-xl mb-4 aspect-[4/3] bg-black/20">
                 <ImageWithFallback
                   src="/mission-1.png"
-                  alt="GPR data visualization — subsurface insight"
+                  alt="Ground Penetrating Radar data visualization showing subsurface soil layers and anomalies in Jamaica"
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
@@ -159,48 +161,48 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
               <p className="text-white/90 text-sm sm:text-base leading-relaxed">
                 {branding.description}
               </p>
-            </div>
+            </article>
 
             {/* Best services in Geophysics */}
-            <div className="flex flex-col">
-              <h2 className="typography-section-title text-white mb-4">Best services in Geophysics</h2>
+            <article className="flex flex-col">
+              <h2 className="typography-section-title text-white mb-4">GPR Services &amp; Geophysics Expertise</h2>
               <div className="relative overflow-hidden rounded-xl mb-4 aspect-[4/3] bg-black/20">
                 <ImageWithFallback
                   src="/mission-2.png"
-                  alt="GPR equipment in use for field surveys"
+                  alt="WCI Geophysics technician operating Ground Penetrating Radar equipment during a field survey in Jamaica"
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
               <ul className="space-y-2 text-white/90 text-sm sm:text-base list-disc list-inside">
-                <li>Utility location</li>
-                <li>Archeology Studies</li>
-                <li>Infrastructure Maintenance</li>
-                <li>As-Built Verification</li>
-                <li>Underground Storage Tank</li>
-                <li>Road and Pavement Evaluation</li>
-                <li>Sinkhole Location</li>
+                <li>Utility location and mapping</li>
+                <li>Archeology studies</li>
+                <li>Infrastructure maintenance assessment</li>
+                <li>As-built verification</li>
+                <li>Underground storage tank detection</li>
+                <li>Road and pavement evaluation</li>
+                <li>Sinkhole and void detection</li>
               </ul>
-            </div>
+            </article>
 
             {/* Our Solution */}
-            <div className="flex flex-col">
-              <h2 className="typography-section-title text-white mb-4">Our Solution</h2>
+            <article className="flex flex-col">
+              <h2 className="typography-section-title text-white mb-4">Non-Destructive Testing Solutions</h2>
               <div className="relative overflow-hidden rounded-xl mb-4 aspect-[4/3] bg-black/20">
                 <ImageWithFallback
                   src="/mission-3.png"
-                  alt="GPR scan — subsurface assessment"
+                  alt="GPR subsurface scan results used for geotechnical engineering analysis in the Caribbean"
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
               <ul className="space-y-2 text-white/90 text-sm sm:text-base list-disc list-inside">
-                <li>Geotechnical and Geological Solutions</li>
-                <li>Infrastructure Assessment</li>
-                <li>Concrete Assessment and Evaluation</li>
-                <li>Environmental and Contamination Studies</li>
+                <li>Geotechnical and geological solutions</li>
+                <li>Infrastructure assessment</li>
+                <li>Concrete assessment and evaluation</li>
+                <li>Environmental and contamination studies</li>
               </ul>
-            </div>
+            </article>
           </div>
         </div>
       </section>
@@ -212,14 +214,14 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             <div className="relative overflow-hidden rounded-2xl shadow-lg aspect-[4/3] bg-muted">
               <ImageWithFallback
                 src="/Media/Geophysics.jpg"
-                alt="Geotechnical engineers and field technicians at an industrial site with surveying equipment"
+                alt="WCI Geophysics team conducting GPR geotechnical soil investigation at a construction site in Jamaica"
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
             </div>
             <div>
               <h2 id="geotechnical-heading" className="typography-section-title-large mb-6">
-                Geotechnical and Geological Solutions
+                Geotechnical &amp; Geological Solutions — GPR Soil Investigation Jamaica
               </h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
@@ -243,7 +245,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="order-2 lg:order-1">
               <h2 id="infrastructure-heading" className="typography-section-title-large mb-6">
-                Infrastructure Assessment
+                Infrastructure Assessment — Non-Destructive Testing Jamaica
               </h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
@@ -257,7 +259,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             <div className="order-1 lg:order-2 relative overflow-hidden rounded-2xl shadow-lg aspect-[4/3] bg-muted">
               <ImageWithFallback
                 src="/Media/Infrastruture-maintenance.jpg"
-                alt="Infrastructure maintenance and assessment"
+                alt="GPR infrastructure assessment and maintenance evaluation of bridges and roads in Jamaica"
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
@@ -280,7 +282,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
             <div>
               <h2 id="concrete-heading" className="typography-section-title-large mb-6">
-                Concrete Assessment and Evaluation
+                Concrete Assessment &amp; Evaluation — GPR Rebar Mapping &amp; Void Detection
               </h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
@@ -301,7 +303,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="order-2 lg:order-1">
               <h2 id="environmental-heading" className="typography-section-title-large mb-6">
-                Environmental and Contamination Studies
+                Environmental &amp; Contamination Studies — GPR Site Assessment
               </h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
@@ -315,7 +317,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             <div className="order-1 lg:order-2 relative overflow-hidden rounded-2xl shadow-lg aspect-[4/3] bg-muted">
               <ImageWithFallback
                 src="/environmental-contamination-studies.png"
-                alt="Field technician operating GPR equipment for environmental and contamination studies"
+                alt="WCI Geophysics technician using Ground Penetrating Radar for environmental contamination assessment in Jamaica"
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
@@ -400,7 +402,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-12 sm:py-16 md:py-20 px-4 overflow-hidden">
+      <section className="relative py-12 sm:py-16 md:py-20 px-4 overflow-hidden" aria-label="Request a GPR survey quote">
         <div className="absolute inset-0 bg-gradient-to-r from-secondary to-secondary/90" aria-hidden="true" />
         <div className="absolute inset-0 opacity-10" aria-hidden="true">
           <div className="absolute top-10 left-10 w-64 h-64 sm:w-96 sm:h-96 bg-primary rounded-full blur-3xl" />
@@ -408,7 +410,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
         </div>
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <h2 className="typography-section-title-large text-white mb-4 px-4">
-            Ready to work with {branding.companyName}?
+            Get a GPR Survey Quote from {branding.companyName}
           </h2>
           <p className="text-base sm:text-lg text-white/90 mb-6 sm:mb-8 leading-relaxed px-4 max-w-2xl mx-auto">
             {branding.description}

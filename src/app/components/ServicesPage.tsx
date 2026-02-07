@@ -3,6 +3,7 @@ import { Button } from '@/app/components/ui/button';
 import { Layers, Route, Ruler, CheckCircle2, TrendingUp, Award, Play } from 'lucide-react';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import Navigation from './Navigation';
+import SEOHead, { buildServicePageJsonLd } from '@/app/components/SEOHead';
 import { getContent, getBranding } from '@/app/config';
 import { api } from '/utils/supabase/api';
 
@@ -101,21 +102,22 @@ export default function ServicesPage({ onNavigate, user, publicAnonKey, onLogout
 
   return (
     <div className="min-h-screen bg-gray-50 scroll-smooth">
+      <SEOHead jsonLd={buildServicePageJsonLd()} />
       <Navigation user={user} onNavigate={onNavigate} onLogout={onLogout} variant="public" showNavLinks={true} />
       <div className="h-16" />
 
       {/* Hero */}
-      <section className="relative bg-secondary text-white py-16 sm:py-20 overflow-hidden">
+      <section className="relative bg-secondary text-white py-16 sm:py-20 overflow-hidden" aria-label="Geophysical and geotechnical services in Jamaica">
         <div className="absolute inset-0 opacity-10" aria-hidden="true">
           <div className="absolute -top-20 -left-20 w-96 h-96 bg-primary rounded-full blur-3xl" />
           <div className="absolute -bottom-20 -right-20 w-[500px] h-[500px] bg-primary rounded-full blur-3xl" />
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
           <h1 className="typography-page-title-hero mb-3">
-            {content.pages.services}
+            GPR Services &amp; Geotechnical Solutions
           </h1>
           <p className="text-white/80 typography-body-sm max-w-xl mx-auto">
-            {branding.description}
+            Professional Ground Penetrating Radar surveys, utility location, infrastructure assessment, concrete evaluation, and environmental studies across Jamaica and the Caribbean.
           </p>
         </div>
       </section>
@@ -239,7 +241,7 @@ export default function ServicesPage({ onNavigate, user, publicAnonKey, onLogout
             <div className="absolute top-0 right-0 w-72 h-72 bg-primary rounded-full blur-3xl" />
           </div>
           <div className="relative z-10 text-center mb-8">
-            <h2 className="typography-section-title text-white mb-2">Our service guarantee</h2>
+            <h2 className="typography-section-title text-white mb-2">Professional GPR Service Guarantee — Jamaica &amp; Caribbean</h2>
             <p className="text-white/80 typography-body-sm max-w-xl mx-auto">
               Every service is backed by our commitment to quality and delivered to rigorous standards.
             </p>

@@ -136,10 +136,10 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
             <MapPin className="w-8 h-8 sm:w-10 sm:h-12 text-primary" />
           </div>
           <h1 className="typography-page-title-hero mb-4 sm:mb-6">
-            {coverageLabel}
+            GPR &amp; Geotechnical Services — All 14 Parishes of Jamaica
           </h1>
           <p className="typography-body text-white/90 sm:text-lg leading-relaxed max-w-3xl mx-auto">
-            {coverageDesc}
+            Webian Contracting provides Ground Penetrating Radar surveys, utility location, infrastructure assessment, and geotechnical solutions island-wide. From Kingston to Montego Bay, Portland to Westmoreland — full Jamaica coverage.
           </p>
         </div>
       </section>
@@ -173,13 +173,11 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-secondary mb-4">
-              {coverageLabel}
+              Service Areas Across Jamaica
             </h2>
-            {coverageDesc && (
-              <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-2">
-                {coverageDesc}
-              </p>
-            )}
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-2">
+              Select a parish to see how WCI Geophysics serves your area with GPR surveys, utility location, and geotechnical solutions.
+            </p>
           </div>
 
           <Card className="border-0 shadow-xl mb-8 overflow-hidden">
