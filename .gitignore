@@ -9,9 +9,9 @@ coverage/
 
 # Production
 dist/
+dist-upload/
 dist-upload.zip
 build/
-dist-upload.zip
 
 # Large binary files in root (not needed in repo)
 Pricing & Invoice Template.xlsx

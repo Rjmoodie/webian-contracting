@@ -64,6 +64,14 @@
     <link rel="dns-prefetch" href="https://sdxhppnsfgvoqcyxcfai.supabase.co" />
     <link rel="dns-prefetch" href="https://maps.googleapis.com" />
 
+    <!-- Inline critical CSS: hide skip-link + loading spinner (before stylesheet loads) -->
+    <style>
+      .skip-link{position:fixed;top:0;left:0;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0;z-index:99999;text-decoration:none}
+      .skip-link:focus{width:auto;height:auto;margin:0;padding:12px 20px;overflow:visible;clip:auto;clip-path:none;top:8px;left:8px;background:#E2582A;color:#fff;font-weight:600;font-size:14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+      #root:empty::after{content:'';display:block;width:40px;height:40px;margin:20vh auto;border:3px solid #e5e7eb;border-top-color:#E2582A;border-radius:50%;animation:sp .7s linear infinite}
+      @keyframes sp{to{transform:rotate(360deg)}}
+    </style>
+
     <!-- JSON-LD: Organization + LocalBusiness + WebSite + ProfessionalService -->
     <script type="application/ld+json">
     {
@@ -259,6 +267,13 @@
   <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <div id="root"></div>
+    <noscript>
+      <div style="text-align:center;padding:60px 20px;font-family:system-ui,sans-serif">
+        <h1 style="font-size:24px;margin-bottom:12px">Webian Contracting &amp; Geophysics Ltd</h1>
+        <p style="color:#666;margin-bottom:20px">Please enable JavaScript to use this website.</p>
+        <p style="color:#666">Contact us: <a href="mailto:gpr@webiancontracting.com" style="color:#E2582A">gpr@webiancontracting.com</a> | 876-784-2220</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

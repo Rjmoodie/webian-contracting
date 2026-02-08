@@ -6,11 +6,13 @@
   RewriteEngine On
   RewriteBase /
 
-  # Force HTTPS (SEO: canonical protocol)
+  # Force HTTPS — safe for SiteGround reverse proxy
+  # Check both %{HTTPS} and X-Forwarded-Proto to avoid redirect loops
   RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # Force www or non-www (pick one; using non-www for cleaner URLs)
+  # Force non-www (canonical URL)
   RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
   RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
 
@@ -80,6 +82,13 @@
   ExpiresByType text/html "access plus 0 seconds"
 
   ExpiresDefault "access plus 2 days"
+</IfModule>
+
+# CORS headers for JS/CSS module loading (required by Safari)
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|mjs)$">
+    Header set Access-Control-Allow-Origin "*"
+  </FilesMatch>
 </IfModule>
 
 # Security Headers

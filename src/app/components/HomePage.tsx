@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { Layers, Route, Ruler, Shield, Clock, MapPin, ArrowRight, CheckCircle2, Instagram, Facebook } from 'lucide-react';
 import Navigation from './Navigation';
 import { Button } from '@/app/components/ui/button';
@@ -29,6 +29,67 @@ const SERVICE_CARDS = [
   { key: 'videography' as const, icon: Route, img: '/Media/Infrastruture-maintenance.jpg' },
   { key: 'audio' as const, icon: Ruler, img: concreteAssessmentImg },
 ];
+
+/**
+ * HeroVideo — forces autoplay on all browsers including Safari & mobile.
+ *
+ * Safari requires muted + playsInline + a programmatic .play() call.
+ * We also set the `muted` property directly on the DOM element because
+ * React's `muted` JSX attribute doesn't always propagate correctly in
+ * Safari, causing autoplay to be blocked.
+ */
+function HeroVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const tryPlay = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    // Ensure muted at the DOM level (Safari quirk)
+    v.muted = true;
+    v.play().catch(() => {
+      // Autoplay blocked — retry once after a short delay (common on slow connections)
+      setTimeout(() => {
+        v.muted = true;
+        v.play().catch(() => { /* still blocked — poster stays visible */ });
+      }, 500);
+    });
+  }, []);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    // If the video is already loaded (cached), play immediately
+    if (v.readyState >= 3) {
+      tryPlay();
+    } else {
+      v.addEventListener('canplay', tryPlay, { once: true });
+    }
+
+    return () => {
+      v.removeEventListener('canplay', tryPlay);
+    };
+  }, [tryPlay]);
+
+  return (
+    <div className="absolute inset-0 z-0">
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        loop
+        playsInline
+        // @ts-expect-error — webkit-playsinline needed for older iOS Safari
+        webkit-playsinline=""
+        preload="auto"
+        className="w-full h-full object-cover"
+        aria-label="Webian Contracting – Ground Penetrating Radar surveys and geotechnical solutions in Jamaica"
+      >
+        <source src="/webian-ad.mp4" type="video/mp4" />
+      </video>
+    </div>
+  );
+}
 
 function safeHostname(url: string): string {
   try {
@@ -78,21 +139,8 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
 
       {/* Hero — main ad video so visitors immediately see what we do */}
       <section className="relative overflow-hidden bg-secondary" aria-label="GPR and Geotechnical Solutions in Jamaica">
-        <div className="absolute inset-0 z-0">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className="w-full h-full object-cover"
-            aria-label="Webian Contracting – Ground Penetrating Radar surveys and geotechnical solutions in Jamaica"
-            poster={branding.heroImageUrl ?? 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1920&q=80'}
-          >
-            <source src="/webian-ad.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" aria-hidden="true" />
-        </div>
+        <HeroVideo />
+        <div className="absolute inset-0 z-[1] bg-gradient-to-t from-black/90 via-black/30 to-transparent" aria-hidden="true" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 min-h-[50vh] flex flex-col justify-end">
           <div className="max-w-2xl">
