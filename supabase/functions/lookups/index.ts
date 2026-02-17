@@ -79,7 +79,7 @@ function serviceTypeToCategory(serviceTypeName: string | null | undefined): "pho
   const n = serviceTypeName.toLowerCase();
   if (n.includes("utility") && n.includes("anomaly")) return "audio";   // e.g. Utility/Anomaly -> Concrete Assessment
   if (n.includes("utility")) return "videography";                       // Utility -> Infrastructure Assessment
-  if (n.includes("cavity")) return "photography";                        // Cavity -> Geotechnical & Geological
+  if (n.includes("cavity")) return "photography";                        // Cavity -> Geophysics & Geotechnical
   return "photography";
 }
 

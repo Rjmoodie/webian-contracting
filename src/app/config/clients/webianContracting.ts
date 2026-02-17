@@ -22,7 +22,7 @@ export const webianContracting: ClientConfig = {
   branding: {
     companyName: 'Webian Contracting & Geophysics Ltd',
     companyShortName: 'WG',
-    tagline: 'Geotechnical and Geological solutions',
+    tagline: 'Geophysics and Geotechnical solutions',
     description:
       'To use applied geophysics to provide developers, engineers, contractors, consultants and decision makers with valuable insight below the surface of their project. This gives them the ability to make more informed decisions, reduce unforeseen risks, and save time and money on each project.',
 
@@ -50,11 +50,11 @@ export const webianContracting: ClientConfig = {
 
     heroTitle: 'View our projects',
     heroSubtitle:
-      'Geotechnical and Geological solutions. Infrastructure Assessment. Concrete Assessment and Evaluation. Environmental and Contamination Studies.',
+      'Geophysics and Geotechnical solutions. Infrastructure Assessment. Concrete Assessment and Evaluation. Environmental and Contamination Studies.',
     ctaText: 'Request quote',
 
     features: [
-      'Geotechnical and Geological Solutions',
+      'Geophysics and Geotechnical Solutions',
       'Infrastructure Assessment',
       'Concrete Assessment and Evaluation',
       'Environmental and Contamination Studies',
@@ -103,7 +103,7 @@ export const webianContracting: ClientConfig = {
       contact: 'Contact WCI',
     },
     serviceCategories: {
-      photography: 'Geotechnical & Geological',
+      photography: 'Geophysics & Geotechnical',
       videography: 'Infrastructure Assessment',
       audio: 'Concrete Assessment',
     },
@@ -149,7 +149,7 @@ export const webianContracting: ClientConfig = {
       storyIntro:
         'WCI Geophysics was founded by Damian Moodie (Bachelor in Construction Engineering from the University of Technology and Masters in Civil Engineering from Ryerson University, Toronto, Canada) on November 12, 2011, with aim to provide Jamaica’s engineers, consultants, developers and other industries with cutting edge, intuitive, fast and reliable results in applied geophysics. Our results provide insight to minimize unforeseen risk, minimize cost while maximizing the reliable and competence of designs, as well as prioritize and optimize decision making for each project at the design level, construction or rehabilitation stage.\n\n' +
         'WCI Geophysics strengths strives on the combination of comprehensive professional experience and knowledge in civil and construction engineering, coupled with in-depth knowledge in applied geophysics using Ground Penetrating Radar principles and applications. Through these strengths we recognize the challenges faced by our target group and can attest that our results will provide revered insight and solution to the challenges of each project.\n\n' +
-        'From its commencement, WCI Geophysics contributed to the development of high profile projects in Jamaica and the wider Caribbean, whereby we provided unparalleled insight to consulting geotechnical firms during their soil investigation and other entities in the construction industry. Some of our projects include the JPS wind turbines project in Munroe, Junction, St. Elizabeth (http://www.windfarmbop.com/tag/ground-penetrating-radar/), Grande Bahia Principe Phase 2 and 3 developments Runaway St. Ann, Silversands Housing Development Innswood, St. Catherine just to name a few.',
+        'From its commencement, WCI Geophysics contributed to the development of high profile projects in Jamaica and the wider Caribbean, whereby we provided unparalleled insight to consulting geophysics and geotechnical firms during their soil investigation and other entities in the construction industry. Some of our projects include the JPS wind turbines project in Munroe, Junction, St. Elizabeth (http://www.windfarmbop.com/tag/ground-penetrating-radar/), Grande Bahia Principe Phase 2 and 3 developments Runaway St. Ann, Silversands Housing Development Innswood, St. Catherine just to name a few.',
       missionIntro:
         'Since then, we have continued to innovate and adapt to the needs of Jamaica and the Caribbean’s new and aging infrastructure by providing concise, accurate and effective non-destructive testing (NDT) results.',
       differentiators: [
@@ -163,7 +163,7 @@ export const webianContracting: ClientConfig = {
         },
         {
           title: 'Jamaica & Caribbean',
-          body: 'We serve high-profile projects across Jamaica and the wider Caribbean—soil investigation support for geotechnical firms, utility location, infrastructure, and more.',
+          body: 'We serve high-profile projects across Jamaica and the wider Caribbean—soil investigation support for geophysics and geotechnical firms, utility location, infrastructure, and more.',
         },
         {
           title: 'End-to-End Service',
@@ -172,11 +172,11 @@ export const webianContracting: ClientConfig = {
       ],
       values: [
         { title: 'Professional', body: 'Comprehensive experience in civil and construction engineering, and applied geophysics using Ground Penetrating Radar.' },
-        { title: 'Credible', body: 'Trusted by consulting geotechnical firms and the construction industry across Jamaica and the Caribbean.' },
+        { title: 'Credible', body: 'Trusted by consulting geophysics and geotechnical firms and the construction industry across Jamaica and the Caribbean.' },
         { title: 'Reliable', body: 'Concise, accurate and effective non-destructive testing results that minimize risk and support decision-making.' },
       ],
       ctaHeading: 'Ready to work with WCI?',
-      ctaSubtext: 'Get a detailed quote for your next geophysical or geotechnical project.',
+      ctaSubtext: 'Get a detailed quote for your next geophysics and geotechnical project.',
       ctaButtonPrimary: 'Get a quote',
       ctaButtonSecondary: 'Our Solutions',
     },

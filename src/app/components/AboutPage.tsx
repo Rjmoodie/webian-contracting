@@ -65,7 +65,7 @@ export default function AboutPage({ onNavigate, onLogout, user }: AboutPageProps
             Back to Home
           </Button>
           <h1 className="typography-page-title-hero mb-4 sm:mb-6">
-            About WCI Geophysics — Jamaica's GPR &amp; Geotechnical Experts Since 2011
+            About WCI Geophysics — Jamaica's GPR &amp; Geophysics &amp; Geotechnical Experts Since 2011
           </h1>
           <p className="typography-body text-white/90 sm:text-lg leading-relaxed">
             Founded in 2011, Webian Contracting &amp; Geophysics Ltd provides Jamaica and the wider Caribbean with cutting-edge Ground Penetrating Radar surveys and applied geophysics solutions.

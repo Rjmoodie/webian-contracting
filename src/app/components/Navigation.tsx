@@ -57,14 +57,6 @@ function PublicLinks({ onNavigate }: { onNavigate: (page: string) => void }) {
       >
         {nav.services}
       </button>
-      {nav.coverageAreas && (
-        <button
-          onClick={() => onNavigate("coverage-areas")}
-          className="inline-flex items-center h-9 leading-none text-foreground hover:text-primary font-medium transition whitespace-nowrap"
-        >
-          {nav.coverageAreas}
-        </button>
-      )}
       <button
         onClick={() => onNavigate("portfolio")}
         className="inline-flex items-center h-9 leading-none text-foreground hover:text-primary font-medium transition whitespace-nowrap"
@@ -219,17 +211,6 @@ export default function Navigation({
                     >
                       {nav.services}
                     </button>
-                    {nav.coverageAreas && (
-                      <button
-                        onClick={() => {
-                          onNavigate("coverage-areas");
-                          closeMenu();
-                        }}
-                        className="w-full text-left px-2 py-3 rounded-md font-medium transition text-foreground hover:text-primary"
-                      >
-                        {nav.coverageAreas}
-                      </button>
-                    )}
                     <button
                       onClick={() => {
                         onNavigate("portfolio");

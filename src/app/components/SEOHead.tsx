@@ -46,7 +46,7 @@ export function buildServicePageJsonLd() {
     '@type': 'ItemList',
     name: 'Geophysical & Geotechnical Services by WCI Geophysics',
     description:
-      'Professional GPR surveys, utility location, geotechnical solutions, infrastructure assessment, and concrete evaluation services in Jamaica.',
+      'Professional GPR surveys, utility location, geophysics and geotechnical solutions, infrastructure assessment, and concrete evaluation services in Jamaica.',
     numberOfItems: 6,
     itemListElement: [
       {
@@ -54,9 +54,9 @@ export function buildServicePageJsonLd() {
         position: 1,
         item: {
           '@type': 'Service',
-          name: 'Geotechnical & Geological Solutions',
+          name: 'Geophysics & Geotechnical Solutions',
           description:
-            'GPR-aided geotechnical soil investigation and subsurface profiling for construction projects in Jamaica.',
+            'GPR-aided geophysics and geotechnical soil investigation and subsurface profiling for construction projects in Jamaica.',
           provider: ORG_REF,
           areaServed: { '@type': 'Country', name: 'Jamaica' },
         },
@@ -104,7 +104,7 @@ export function buildServicePageJsonLd() {
           '@type': 'Service',
           name: 'Cavity & Void Detection',
           description:
-            'GPR-based sinkhole, cavity, and void detection for construction safety and geotechnical risk assessment in Jamaica.',
+            'GPR-based sinkhole, cavity, and void detection for construction safety and geophysics and geotechnical risk assessment in Jamaica.',
           provider: ORG_REF,
           areaServed: { '@type': 'Country', name: 'Jamaica' },
         },
@@ -147,7 +147,7 @@ export function buildFAQJsonLd() {
         name: 'What is Ground Penetrating Radar (GPR)?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Ground Penetrating Radar (GPR) is a non-destructive geophysical method that uses radar pulses to image the subsurface. WCI Geophysics uses GPR to locate utilities, detect voids, assess infrastructure, and support geotechnical investigations across Jamaica.',
+          text: 'Ground Penetrating Radar (GPR) is a non-destructive geophysical method that uses radar pulses to image the subsurface. WCI Geophysics uses GPR to locate utilities, detect voids, assess infrastructure, and support geophysics and geotechnical investigations across Jamaica.',
         },
       },
       {
@@ -171,7 +171,7 @@ export function buildFAQJsonLd() {
         name: 'What types of projects does WCI Geophysics handle?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'WCI Geophysics handles geotechnical investigations, utility location and mapping, infrastructure assessment, concrete evaluation, void and cavity detection, sinkhole location, environmental contamination studies, road and pavement evaluation, and archaeological surveys.',
+          text: 'WCI Geophysics handles geophysics and geotechnical investigations, utility location and mapping, infrastructure assessment, concrete evaluation, void and cavity detection, sinkhole location, environmental contamination studies, road and pavement evaluation, and archaeological surveys.',
         },
       },
       {

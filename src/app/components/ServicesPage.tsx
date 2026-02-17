@@ -114,7 +114,7 @@ export default function ServicesPage({ onNavigate, user, publicAnonKey, onLogout
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
           <h1 className="typography-page-title-hero mb-3">
-            GPR Services &amp; Geotechnical Solutions
+            GPR Services &amp; Geophysics &amp; Geotechnical Solutions
           </h1>
           <p className="text-white/80 typography-body-sm max-w-xl mx-auto">
             Professional Ground Penetrating Radar surveys, utility location, infrastructure assessment, concrete evaluation, and environmental studies across Jamaica and the Caribbean.
@@ -269,7 +269,7 @@ export default function ServicesPage({ onNavigate, user, publicAnonKey, onLogout
           <div className="mt-8 sm:mt-10 bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 text-center">
             <h3 className="typography-card-title-lg mb-2">{phrasesGetStarted}</h3>
             <p className="typography-body-sm-muted mb-5 max-w-lg mx-auto">
-              Join {branding.companyName} and get a detailed quote for your next geophysical or geotechnical project.
+              Join {branding.companyName} and get a detailed quote for your next geophysics and geotechnical project.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button

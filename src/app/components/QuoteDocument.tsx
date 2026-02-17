@@ -138,7 +138,7 @@ export default function QuoteDocument({ request, lineItems, user, accessToken, o
       doc.text(branding.companyName || 'Webian Contracting', leftStart, 18);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(branding.tagline || 'Geotechnical & Geological Solutions', leftStart, 26);
+      doc.text(branding.tagline || 'Geophysics & Geotechnical Solutions', leftStart, 26);
       doc.text(branding.contactPhone || '', pw - margin, 18, { align: 'right' });
       doc.text(branding.contactEmail || '', pw - margin, 24, { align: 'right' });
       doc.text(branding.website || '', pw - margin, 30, { align: 'right' });

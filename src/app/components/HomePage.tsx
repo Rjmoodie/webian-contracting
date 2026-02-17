@@ -138,14 +138,14 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
       <div className="h-24" />
 
       {/* Hero — main ad video so visitors immediately see what we do */}
-      <section className="relative overflow-hidden bg-secondary" aria-label="GPR and Geotechnical Solutions in Jamaica">
+      <section className="relative overflow-hidden bg-secondary" aria-label="GPR and Geophysics & Geotechnical Solutions in Jamaica">
         <HeroVideo />
         <div className="absolute inset-0 z-[1] bg-gradient-to-t from-black/90 via-black/30 to-transparent" aria-hidden="true" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 min-h-[50vh] flex flex-col justify-end">
           <div className="max-w-2xl">
             <h1 className="typography-page-title-hero mb-3">
-              GPR Surveys &amp; Geotechnical Solutions in Jamaica
+              GPR Surveys &amp; Geophysics &amp; Geotechnical Solutions in Jamaica
             </h1>
             <p className="typography-body-sm text-white/80 mb-8 max-w-lg">
               {branding.tagline} — Ground Penetrating Radar (GPR) services, utility location, infrastructure assessment, and subsurface investigation across Jamaica and the Caribbean.
@@ -245,7 +245,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
                 />
               </div>
               <ul className="space-y-2 text-white/90 text-sm sm:text-base list-disc list-inside">
-                <li>Geotechnical and geological solutions</li>
+                <li>Geophysics and geotechnical solutions</li>
                 <li>Infrastructure assessment</li>
                 <li>Concrete assessment and evaluation</li>
                 <li>Environmental and contamination studies</li>
@@ -255,7 +255,7 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
         </div>
       </section>
 
-      {/* Geotechnical and Geological Solutions */}
+      {/* Geophysics and Geotechnical Solutions */}
       <section className="py-12 sm:py-16 px-4 bg-card" aria-labelledby="geotechnical-heading">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -269,11 +269,11 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
             </div>
             <div>
               <h2 id="geotechnical-heading" className="typography-section-title-large mb-6">
-                Geotechnical &amp; Geological Solutions — GPR Soil Investigation Jamaica
+                Geophysics &amp; Geotechnical Solutions — GPR Soil Investigation Jamaica
               </h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
-                  Geotechnical Engineers are tasked to determine the failure mode of the soil for a particular project. This can be a very challenging, costly and time consuming task for highly variable and complex soil deposits (e.g. peaty soils, voids in limestone and erodible soils).
+                  Geophysics and geotechnical engineers are tasked to determine the failure mode of the soil for a particular project. This can be a very challenging, costly and time consuming task for highly variable and complex soil deposits (e.g. peaty soils, voids in limestone and erodible soils).
                 </p>
                 <p>
                   WCI Geophysics have aided many geotechnical investigations using Ground Penetrating Radar, multiple frequency data acquisition and post data processing, to provide accurate and unparalleled information about the soil strata/profile for various projects throughout Jamaica.
@@ -525,7 +525,6 @@ export default function HomePage({ onNavigate, user, onLogout }: HomePageProps) 
               <h4 className="typography-label mb-3">Company</h4>
               <ul className="space-y-2 text-sm">
                 <li className="hover:text-primary cursor-pointer transition" onClick={() => onNavigate('about')}>{navAbout}</li>
-                <li className="hover:text-primary cursor-pointer transition" onClick={() => onNavigate('coverage-areas')}>{coverageLabel}</li>
                 <li className="hover:text-primary cursor-pointer transition" onClick={() => onNavigate('terms-policies')}>{legalTermsTitle}</li>
               </ul>
             </div>

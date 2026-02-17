@@ -34,7 +34,7 @@ function projectVars(project: Record<string, unknown>) {
   const location = (project.project_location as string) || "N/A";
   const address = (project.project_address as string) || location;
   const description = (project.project_description as string) || "";
-  const serviceType = (project.service_type_name as string) || "Geotechnical Survey";
+  const serviceType = (project.service_type_name as string) || "Geophysics & Geotechnical Survey";
   const surveyArea = project.survey_area_sqm ? `${project.survey_area_sqm} sq m` : "N/A";
   const projectCode = (project.project_code as string) || "";
   const createdDate = project.created_at
@@ -55,7 +55,7 @@ function getCavitySections(project: Record<string, unknown>): SectionTemplate[] 
     {
       section_key: "introduction",
       title: "1. Introduction",
-      content: `Webian Contracting Geotechnical & Geological Solutions was commissioned by ${client} to conduct a cavity and void detection survey at ${address}.\n\nThe objective was to assess subsurface conditions for the presence of voids, cavities, or zones of low density that could pose a risk to structures or construction.\n\nProject Code: ${projectCode}\nDate Commissioned: ${createdDate}\nSurvey Area: ${surveyArea}`,
+      content: `Webian Contracting Geophysics & Geotechnical Solutions was commissioned by ${client} to conduct a cavity and void detection survey at ${address}.\n\nThe objective was to assess subsurface conditions for the presence of voids, cavities, or zones of low density that could pose a risk to structures or construction.\n\nProject Code: ${projectCode}\nDate Commissioned: ${createdDate}\nSurvey Area: ${surveyArea}`,
     },
     {
       section_key: "site_description",
@@ -208,7 +208,7 @@ app.post("/reports", async (c) => {
     }
 
     const reportNumber = project.project_code ? `RPT-${project.project_code}` : `RPT-${projectId.slice(0, 8).toUpperCase()}`;
-    const title = `${(project.service_types as { name?: string })?.name || "Geotechnical"} Report — ${project.project_name}`;
+    const title = `${(project.service_types as { name?: string })?.name || "Geophysics & Geotechnical"} Report — ${project.project_name}`;
 
     // Create report (store template_type for reference)
     const { data: report, error: insertErr } = await supabase

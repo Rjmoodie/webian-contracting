@@ -136,10 +136,10 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
             <MapPin className="w-8 h-8 sm:w-10 sm:h-12 text-primary" />
           </div>
           <h1 className="typography-page-title-hero mb-4 sm:mb-6">
-            GPR &amp; Geotechnical Services — All 14 Parishes of Jamaica
+            GPR &amp; Geophysics &amp; Geotechnical Services — All 14 Parishes of Jamaica
           </h1>
           <p className="typography-body text-white/90 sm:text-lg leading-relaxed max-w-3xl mx-auto">
-            Webian Contracting provides Ground Penetrating Radar surveys, utility location, infrastructure assessment, and geotechnical solutions island-wide. From Kingston to Montego Bay, Portland to Westmoreland — full Jamaica coverage.
+            Webian Contracting provides Ground Penetrating Radar surveys, utility location, infrastructure assessment, and geophysics and geotechnical solutions island-wide. From Kingston to Montego Bay, Portland to Westmoreland — full Jamaica coverage.
           </p>
         </div>
       </section>
@@ -176,7 +176,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
               Service Areas Across Jamaica
             </h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-2">
-              Select a parish to see how WCI Geophysics serves your area with GPR surveys, utility location, and geotechnical solutions.
+              Select a parish to see how WCI Geophysics serves your area with GPR surveys, utility location, and geophysics and geotechnical solutions.
             </p>
           </div>
 
@@ -281,7 +281,7 @@ export default function CoverageAreasPage({ onNavigate, onLogout, user }: Covera
                   </p>
                   <div className="bg-muted p-4 rounded-lg border-l-4 border-primary">
                     <p className="text-sm text-foreground">
-                      <span className="font-bold text-secondary">WCI solutions:</span> Geotechnical and geological solutions, infrastructure assessment, concrete assessment and evaluation, and environmental and contamination studies. Get in touch for a detailed quote.
+                      <span className="font-bold text-secondary">WCI solutions:</span> Geophysics and geotechnical solutions, infrastructure assessment, concrete assessment and evaluation, and environmental and contamination studies. Get in touch for a detailed quote.
                     </p>
                   </div>
                 </div>

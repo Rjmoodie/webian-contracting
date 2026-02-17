@@ -39,7 +39,7 @@ function emailWrap(inner: string) {
 <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.1)">
 <tr><td style="background:linear-gradient(135deg,#E2582A 0%,#c74a22 100%);padding:32px;text-align:center">
 <h1 style="margin:0;color:#fff;font-size:24px;font-weight:bold">Webian Contracting</h1>
-<p style="margin:8px 0 0;color:rgba(255,255,255,.9);font-size:13px">Geotechnical &amp; Geological Solutions</p></td></tr>
+<p style="margin:8px 0 0;color:rgba(255,255,255,.9);font-size:13px">Geophysics &amp; Geotechnical Solutions</p></td></tr>
 <tr><td style="padding:40px 32px">${inner}</td></tr>
 <tr><td style="background:#f8f8f8;padding:24px 32px;border-top:1px solid #e5e5e5">
 <p style="margin:0;color:#999;font-size:12px">This is an automated notification from Webian Contracting. Reply directly to this email or use the platform.</p>

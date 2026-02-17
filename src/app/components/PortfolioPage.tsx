@@ -156,7 +156,7 @@ export default function PortfolioPage({ onNavigate, user, publicAnonKey, onLogou
           <div className="absolute -bottom-20 -right-20 w-[500px] h-[500px] bg-primary rounded-full blur-3xl" />
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
-          <h1 className="typography-page-title-hero mb-3">GPR Projects &amp; Geotechnical Case Studies — Jamaica</h1>
+          <h1 className="typography-page-title-hero mb-3">GPR Projects &amp; Geophysics &amp; Geotechnical Case Studies — Jamaica</h1>
           <p className="text-white/80 typography-body-sm max-w-xl mx-auto">
             Browse completed Ground Penetrating Radar surveys, utility location projects, infrastructure assessments, and geotechnical investigations delivered across Jamaica and the wider Caribbean by WCI Geophysics.
           </p>

@@ -407,7 +407,7 @@ export default function ReportBuilder({ request, user, accessToken, onRefresh, p
       doc.text(branding.companyName || 'Webian Contracting', pageW / 2, 35, { align: 'center' });
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text('Geotechnical & Geological Solutions', pageW / 2, 48, { align: 'center' });
+      doc.text('Geophysics & Geotechnical Solutions', pageW / 2, 48, { align: 'center' });
 
       doc.setFontSize(11);
       doc.text(report.report_number || '', pageW / 2, 62, { align: 'center' });
